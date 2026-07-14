@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 using UIFramework.Core.Controls;
-using UIFramework.Core.Dpi;
+using UIFramework.Core.Rendering;
 using UIFramework.Core.Skinning;
 
 namespace UIFramework.Controls
@@ -43,27 +43,9 @@ namespace UIFramework.Controls
         {
             get
             {
-                var appearance = CurrentAppearance;
-                int dpi = DeviceDpi;
-
-                var padding = DpiScale.Scale(appearance.Padding, dpi);
-                int border = DpiScale.Scale(appearance.BorderWidth, dpi);
-
-                int left = padding.Left + border;
-                int top = padding.Top + border;
-                int right = padding.Right + border;
-                int bottom = padding.Bottom + border;
-
-                var rect = new Rectangle(
-                    left,
-                    top,
-                    ClientRectangle.Width - left - right,
-                    ClientRectangle.Height - top - bottom);
-
-                if (rect.Width < 0) rect.Width = 0;
-                if (rect.Height < 0) rect.Height = 0;
-
-                return rect;
+                // Der Einzug (Padding + Rahmenbreite, DPI-skaliert) wird im Painter
+                // berechnet, nicht hier: Controls dürfen selbst nicht skalieren.
+                return SkinPainter.GetContentRectangle(ClientRectangle, CurrentAppearance, DeviceDpi);
             }
         }
     }

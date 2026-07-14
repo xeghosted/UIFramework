@@ -128,6 +128,37 @@ namespace UIFramework.Core.Rendering
             DrawText(g, text, content, appearance, dpi, alignment);
         }
 
+        /// <summary>
+        /// Berechnet das Innenrechteck für Kind-Inhalte: bounds abzüglich skaliertem
+        /// Padding und skalierter Rahmenbreite auf allen vier Seiten. Nicht-zeichnende
+        /// Hilfsmethode wie <see cref="MeasureText"/> — lebt hier, damit die
+        /// DpiScale-Arithmetik nicht in die Controls-Assembly abwandert (etwa in
+        /// SkinPanel.DisplayRectangle).
+        /// </summary>
+        public static Rectangle GetContentRectangle(Rectangle bounds, ElementAppearance appearance, int dpi)
+        {
+            if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+
+            var padding = DpiScale.Scale(appearance.Padding, dpi);
+            int border = DpiScale.Scale(appearance.BorderWidth, dpi);
+
+            int left = padding.Left + border;
+            int top = padding.Top + border;
+            int right = padding.Right + border;
+            int bottom = padding.Bottom + border;
+
+            var rect = new Rectangle(
+                bounds.Left + left,
+                bounds.Top + top,
+                bounds.Width - left - right,
+                bounds.Height - top - bottom);
+
+            if (rect.Width < 0) rect.Width = 0;
+            if (rect.Height < 0) rect.Height = 0;
+
+            return rect;
+        }
+
         public static Size MeasureText(Graphics g, string text, ElementAppearance appearance, int dpi)
         {
             if (g == null) throw new ArgumentNullException(nameof(g));
