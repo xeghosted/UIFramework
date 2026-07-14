@@ -10,7 +10,7 @@ namespace UIFramework.Demo
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form { Text = "UIFramework Demo" });
+            Application.Run(new MainForm());
         }
     }
 }
