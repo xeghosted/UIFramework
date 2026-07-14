@@ -19,6 +19,12 @@ namespace UIFramework.Core.Controls
     /// SkinManager.SkinChanged: Ein statisches Event hielte jedes je erzeugte
     /// Fenster am Leben — genau das Leck, das die schwache Registrierung
     /// verhindert und vor dem der SkinManager selbst warnt.
+    ///
+    /// Diese Klasse skint NUR die Titelleiste (Nicht-Client-Bereich). Der
+    /// Client-Bereich eines bloßen SkinnedForm bleibt Windows-Standard (hell) —
+    /// wer den ebenfalls im Skin-Ton braucht, füllt das Fenster mit einem
+    /// SkinPanel (oder einem gleichwertigen Control). Das ist bewusst so
+    /// begrenzt und kein Defekt.
     /// </summary>
     public class SkinnedForm : Form
     {
@@ -53,6 +59,14 @@ namespace UIFramework.Core.Controls
         protected override void OnHandleCreated(EventArgs e)
         {
             base.OnHandleCreated(e);
+
+            // Ein neues Fensterhandle trägt die Standard-Chrome von Windows; der
+            // Merker unten galt nur für das alte Handle. WinForms erzeugt bei
+            // gewöhnlichen Eigenschaftsänderungen (z. B. ShowInTaskbar,
+            // RightToLeft) klammheimlich ein neues HWND — ohne dieses
+            // Zurücksetzen würde ReferenceEquals unten das erneute Anwenden
+            // überspringen, und das neue Fenster bliebe unskinnt.
+            _applied = null;
             ApplyCaptionIfChanged();
         }
 
@@ -84,13 +98,13 @@ namespace UIFramework.Core.Controls
 
             // Zuerst der Schalter: Die Glyphen der Systemknöpfe folgen ihm, nicht
             // der Titeltextfarbe. Ohne ihn stünden dunkle Glyphen auf dunkler Leiste.
-            Dwm.TrySetDarkMode(Handle, IsDarkCaption(appearance));
+            Dwm.SetDarkMode(Handle, IsDarkCaption(appearance));
 
             // Dann die exakten Farben. Auf Windows 10 und älter kennt DWM diese
             // Attribute nicht und lehnt sie ab — dann bleibt es beim Schalter oben.
-            Dwm.TrySetCaptionColor(Handle, appearance.Background);
-            Dwm.TrySetCaptionTextColor(Handle, appearance.ForeColor);
-            Dwm.TrySetBorderColor(Handle, appearance.BorderColor);
+            Dwm.SetCaptionColor(Handle, appearance.Background);
+            Dwm.SetCaptionTextColor(Handle, appearance.ForeColor);
+            Dwm.SetBorderColor(Handle, appearance.BorderColor);
         }
     }
 }

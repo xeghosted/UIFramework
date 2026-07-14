@@ -42,6 +42,25 @@ namespace UIFramework.Core.Interop
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
         /// <summary>
+        /// Testnaht: der eigentliche Aufruf gegen DWM, austauschbar für Tests.
+        /// Nimmt (Handle, Attribut, Wert) entgegen und liefert zurück, ob DWM den
+        /// Wert akzeptiert hat. Voreinstellung ist der echte P/Invoke-Aufruf oben;
+        /// ein Test tauscht ihn aus, um zu prüfen, WELCHE Farbe an WELCHES Attribut
+        /// geht — ohne einen echten Fensterrahmen zu brauchen. Der bool-Rückgabewert
+        /// bleibt hier, weil ein Test damit auch einen DWM-Ablehnungsfall simulieren
+        /// kann; die öffentlichen SetXyz-Methoden unten brauchen ihn dagegen nicht,
+        /// siehe deren Kommentar. Prozessweiter Zustand — ein Test MUSS den
+        /// Originalwert in einem finally wiederherstellen (siehe SkinManagerCollection).
+        /// </summary>
+        internal static Func<IntPtr, int, int, bool> Setter = RealSetter;
+
+        private static bool RealSetter(IntPtr handle, int attribute, int value)
+        {
+            int v = value;
+            return DwmSetWindowAttribute(handle, attribute, ref v, sizeof(int)) == Ok;
+        }
+
+        /// <summary>
         /// Rechnet eine Farbe in ein COLORREF um: 0x00BBGGRR.
         ///
         /// Blau und Rot stehen darin GENAU ANDERSHERUM als in der üblichen
@@ -58,19 +77,29 @@ namespace UIFramework.Core.Interop
             return color.R | (color.G << 8) | (color.B << 16);
         }
 
-        internal static bool TrySetCaptionColor(IntPtr handle, Color color)
+        /// <summary>
+        /// Setzt die Titelleistenfarbe (und die drei Geschwister unten). Kein
+        /// Rückgabewert: Auf Windows 10 und älter kennt DWM diese Attribute nicht
+        /// und lehnt sie ab, und SkinnedForm hat dafür keinen Ausweichplan — der
+        /// einzig sinnvolle Umgang mit "hat nicht geklappt" ist, es zu ignorieren.
+        /// Ein bool, das seit der Einführung dieser Klasse an keiner einzigen
+        /// Aufrufstelle geprüft wurde, behauptet eine Fehlerbehandlung, die es
+        /// nicht gibt. Wer den tatsächlichen Erfolg braucht, hängt sich in Tests
+        /// stattdessen in <see cref="Setter"/> ein.
+        /// </summary>
+        internal static void SetCaptionColor(IntPtr handle, Color color)
         {
-            return TrySetColor(handle, CaptionColorAttribute, color);
+            SetColor(handle, CaptionColorAttribute, color);
         }
 
-        internal static bool TrySetCaptionTextColor(IntPtr handle, Color color)
+        internal static void SetCaptionTextColor(IntPtr handle, Color color)
         {
-            return TrySetColor(handle, TextColorAttribute, color);
+            SetColor(handle, TextColorAttribute, color);
         }
 
-        internal static bool TrySetBorderColor(IntPtr handle, Color color)
+        internal static void SetBorderColor(IntPtr handle, Color color)
         {
-            return TrySetColor(handle, BorderColorAttribute, color);
+            SetColor(handle, BorderColorAttribute, color);
         }
 
         /// <summary>
@@ -79,16 +108,14 @@ namespace UIFramework.Core.Interop
         /// folgen NICHT der Titeltextfarbe, sondern diesem Schalter. Ohne ihn
         /// stünden dunkle Glyphen auf dunkler Leiste — unsichtbar.
         /// </summary>
-        internal static bool TrySetDarkMode(IntPtr handle, bool dark)
+        internal static void SetDarkMode(IntPtr handle, bool dark)
         {
-            int value = dark ? 1 : 0;
-            return DwmSetWindowAttribute(handle, ImmersiveDarkModeAttribute, ref value, sizeof(int)) == Ok;
+            Setter(handle, ImmersiveDarkModeAttribute, dark ? 1 : 0);
         }
 
-        private static bool TrySetColor(IntPtr handle, int attribute, Color color)
+        private static void SetColor(IntPtr handle, int attribute, Color color)
         {
-            int value = ToColorRef(color);
-            return DwmSetWindowAttribute(handle, attribute, ref value, sizeof(int)) == Ok;
+            Setter(handle, attribute, ToColorRef(color));
         }
     }
 }

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using UIFramework.Core.Controls;
+using UIFramework.Core.Interop;
 using UIFramework.Core.Skinning;
 using UIFramework.Core.Skinning.Skins;
 using UIFramework.Tests.TestSupport;
@@ -90,6 +92,70 @@ namespace UIFramework.Tests.Controls
                 SkinManager.Current = new DarkSkin();
 
                 Assert.Equal(afterHandle + 1, form.CaptionApplyCount);
+            }
+        }
+
+        [Fact]
+        public void Recreating_the_handle_reapplies_the_caption_to_the_new_window()
+        {
+            using (var form = new SkinnedForm())
+            {
+                var unused = form.Handle;
+                int afterFirstHandle = form.CaptionApplyCount;
+                IntPtr firstHandle = form.Handle;
+
+                // ShowInTaskbar erzwingt bei WinForms ein neues HWND
+                // (RecreateHandle) — ein alltäglicher Fall, kein Sonderweg
+                // (RightToLeft tut dasselbe). Das neue Fenster trägt zunächst
+                // wieder die helle Windows-Standardleiste; ohne das
+                // Zurücksetzen von _applied in OnHandleCreated würde der
+                // ReferenceEquals-Merker das erneute Anwenden überspringen,
+                // weil er noch die alte Appearance-Instanz kennt.
+                form.ShowInTaskbar = false;
+
+                Assert.NotEqual(firstHandle, form.Handle);
+                Assert.Equal(afterFirstHandle + 1, form.CaptionApplyCount);
+            }
+        }
+
+        [Fact]
+        public void A_skin_change_pushes_the_right_colour_to_the_right_dwm_attribute()
+        {
+            var calls = new List<Tuple<int, int>>();
+            Func<IntPtr, int, int, bool> original = Dwm.Setter;
+            try
+            {
+                using (var form = new SkinnedForm())
+                {
+                    var unused = form.Handle;
+
+                    // Erst jetzt einhängen: die Handle-Erzeugung oben soll nicht
+                    // mitgezählt werden, nur der Skin-Wechsel unten.
+                    Dwm.Setter = (handle, attribute, value) =>
+                    {
+                        calls.Add(Tuple.Create(attribute, value));
+                        return true;
+                    };
+
+                    SkinManager.Current = new DarkSkin();
+                    var appearance = new DarkSkin().GetAppearance(ElementKeys.Window, ElementState.Normal);
+
+                    // attribute(35) = Titelleiste ← Background,
+                    // attribute(36) = Titeltext   ← ForeColor,
+                    // attribute(34) = Rahmen      ← BorderColor,
+                    // attribute(20) = Dark-Mode-Schalter ← 1, weil DarkSkin
+                    // eine dunkle Leiste ist (siehe IsDarkCaption).
+                    Assert.Contains(Tuple.Create(35, Dwm.ToColorRef(appearance.Background)), calls);
+                    Assert.Contains(Tuple.Create(36, Dwm.ToColorRef(appearance.ForeColor)), calls);
+                    Assert.Contains(Tuple.Create(34, Dwm.ToColorRef(appearance.BorderColor)), calls);
+                    Assert.Contains(Tuple.Create(20, 1), calls);
+                }
+            }
+            finally
+            {
+                // Prozessweiter Zustand: ein fehlschlagender Test darf die
+                // restliche Suite nicht vergiften.
+                Dwm.Setter = original;
             }
         }
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UIFramework.Core.Skinning;
 using UIFramework.Core.Skinning.Skins;
@@ -73,8 +74,14 @@ namespace UIFramework.Tests.Skinning
         {
             var window = skin.GetAppearance(ElementKeys.Window, ElementState.Normal);
 
-            // Gleiche Farbe für Leiste und Titel hieße: unlesbarer Titel.
-            Assert.NotEqual(window.Background.ToArgb(), window.ForeColor.ToArgb());
+            // Nur "irgendein anderer ARGB-Wert" lässt zwei gleich helle, aber
+            // andersfarbige Töne durchgehen — auf einer echten Titelleiste kaum
+            // auseinanderzuhalten. Lesbar heißt: ein echter Helligkeitsabstand.
+            // Genau davon hängt SkinnedForm.IsDarkCaption ab (Helligkeitsvergleich),
+            // also prüft dieser Test dieselbe Größe.
+            float difference = Math.Abs(window.Background.GetBrightness() - window.ForeColor.GetBrightness());
+            Assert.True(difference > 0.2f,
+                "Titelleiste und Titeltext müssen sich deutlich in der Helligkeit unterscheiden, sonst ist der Titel nicht lesbar. Unterschied war " + difference);
         }
 
         [Fact]
