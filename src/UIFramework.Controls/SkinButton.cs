@@ -57,14 +57,9 @@ namespace UIFramework.Controls
         {
             if (string.IsNullOrEmpty(Text)) return;
 
-            var padding = UIFramework.Core.Dpi.DpiScale.Scale(appearance.Padding, DeviceDpi);
-            var content = new Rectangle(
-                ClientRectangle.Left + padding.Left,
-                ClientRectangle.Top + padding.Top,
-                ClientRectangle.Width - padding.Horizontal,
-                ClientRectangle.Height - padding.Vertical);
-
-            SkinPainter.DrawText(g, Text, content, appearance, DeviceDpi, _textAlignment);
+            // Padding wird nicht hier gerechnet, sondern im Painter über DpiScale:
+            // Controls dürfen selbst nicht skalieren.
+            SkinPainter.DrawPaddedText(g, Text, ClientRectangle, appearance, DeviceDpi, _textAlignment);
         }
 
         protected override void OnTextChanged(EventArgs e)

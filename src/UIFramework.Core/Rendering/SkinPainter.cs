@@ -105,6 +105,29 @@ namespace UIFramework.Core.Rendering
             TextRenderer.DrawText(g, text, font, bounds, appearance.ForeColor, ToTextFormatFlags(alignment));
         }
 
+        /// <summary>
+        /// Wie <see cref="DrawText"/>, nimmt aber unbeschnittene Bounds entgegen und
+        /// zieht das Padding des Appearance selbst über DpiScale ab — spiegelt den
+        /// Ansatz von <see cref="DrawFocus"/>. So muss kein Control (Controls-Assembly)
+        /// selbst mit DpiScale rechnen.
+        /// </summary>
+        public static void DrawPaddedText(Graphics g, string text, Rectangle bounds, ElementAppearance appearance,
+            int dpi, ContentAlignment alignment)
+        {
+            if (g == null) throw new ArgumentNullException(nameof(g));
+            if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+            if (string.IsNullOrEmpty(text)) return;
+
+            var padding = DpiScale.Scale(appearance.Padding, dpi);
+            var content = new Rectangle(
+                bounds.Left + padding.Left,
+                bounds.Top + padding.Top,
+                bounds.Width - padding.Horizontal,
+                bounds.Height - padding.Vertical);
+
+            DrawText(g, text, content, appearance, dpi, alignment);
+        }
+
         public static Size MeasureText(Graphics g, string text, ElementAppearance appearance, int dpi)
         {
             if (g == null) throw new ArgumentNullException(nameof(g));
