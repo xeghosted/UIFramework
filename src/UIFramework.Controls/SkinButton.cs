@@ -31,6 +31,26 @@ namespace UIFramework.Controls
             get { return ElementKeys.Button; }
         }
 
+        /// <summary>
+        /// Wenn gesetzt, richtet sich die Größe nach dem tatsächlichen Textbedarf
+        /// (siehe <see cref="GetPreferredSize"/>) statt der festen 96×30-Vorgabe
+        /// aus dem Konstruktor. Standardmäßig aus, damit bestehender Code, der sich
+        /// auf die feste Größe verlässt, unverändert bleibt — wer variable
+        /// Beschriftungen zeigt (wie die Demo), schaltet es gezielt ein.
+        /// </summary>
+        [Category("Layout")]
+        [DefaultValue(false)]
+        public override bool AutoSize
+        {
+            get { return base.AutoSize; }
+            set
+            {
+                if (base.AutoSize == value) return;
+                base.AutoSize = value;
+                if (value) AdjustSize();
+            }
+        }
+
         [Category("Appearance")]
         [DefaultValue(ContentAlignment.MiddleCenter)]
         public ContentAlignment TextAlignment
@@ -62,10 +82,44 @@ namespace UIFramework.Controls
             SkinPainter.DrawPaddedText(g, Text, ClientRectangle, appearance, DeviceDpi, _textAlignment);
         }
 
+        /// <summary>
+        /// Spiegelt <see cref="SkinLabel.GetPreferredSize"/>: misst den Text über
+        /// den Painter und polstert ihn um das (DPI-skalierte) Padding des
+        /// Appearance auf. Die DpiScale-Arithmetik bleibt dabei im Painter — hier
+        /// wird nur DeviceDpi durchgereicht (siehe SkinPainter.InflateByPadding).
+        /// </summary>
+        public override Size GetPreferredSize(Size proposedSize)
+        {
+            var appearance = CurrentAppearance;
+
+            using (var bitmap = new Bitmap(1, 1))
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                string measured = string.IsNullOrEmpty(Text) ? "Xg" : Text;
+                var textSize = SkinPainter.MeasureText(g, measured, appearance, DeviceDpi);
+
+                if (string.IsNullOrEmpty(Text)) textSize.Width = 0;
+
+                return SkinPainter.InflateByPadding(textSize, appearance, DeviceDpi);
+            }
+        }
+
         protected override void OnTextChanged(EventArgs e)
         {
+            if (AutoSize) AdjustSize();
             Invalidate();
             base.OnTextChanged(e);
+        }
+
+        protected override void OnDpiChangedAfterParent(EventArgs e)
+        {
+            if (AutoSize) AdjustSize();
+            base.OnDpiChangedAfterParent(e);
+        }
+
+        private void AdjustSize()
+        {
+            Size = GetPreferredSize(Size.Empty);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)

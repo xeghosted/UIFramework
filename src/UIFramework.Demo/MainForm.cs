@@ -15,6 +15,15 @@ namespace UIFramework.Demo
     {
         private readonly SkinLabel _dpiLabel = new SkinLabel();
 
+        // Fester Abstand zwischen Controls in logischen Pixeln. Bewusst kein
+        // DpiScale hier (das wäre DPI-Arithmetik in einer Assembly, die davon
+        // frei bleiben soll) — die Reihenfolge unten misst stattdessen die
+        // bereits DPI-korrekten AutoSize-Größen der Controls selbst und reiht
+        // aneinander. Ein fester Pixel-Wert als Lücke bleibt bei jeder DPI ein
+        // sichtbarer, wenn auch nicht perfekt skalierender, Abstand.
+        private const int Gap = 8;
+        private const int RowGap = 12;
+
         public MainForm()
         {
             Text = "UIFramework — Fundament";
@@ -24,21 +33,41 @@ namespace UIFramework.Demo
             var root = new SkinPanel { Dock = DockStyle.Fill };
             Controls.Add(root);
 
-            var toggleLight = new SkinButton { Text = "Heller Skin", Location = new Point(16, 16) };
+            // AutoSize=true: die Schaltflächen richten sich nach dem tatsächlichen
+            // Textbedarf (SkinButton.GetPreferredSize) statt der festen 96×30-
+            // Vorgabe. Ohne das schneidet der Text oberhalb von 96 dpi ab, weil
+            // die feste Größe nicht mit der (korrekt skalierenden) Schrift wächst.
+            var toggleLight = new SkinButton { Text = "Heller Skin", AutoSize = true };
             toggleLight.Click += (s, e) => SkinManager.Current = new LightSkin();
+            toggleLight.Location = new Point(16, 16);
 
-            var toggleDark = new SkinButton { Text = "Dunkler Skin", Location = new Point(124, 16) };
+            var toggleDark = new SkinButton { Text = "Dunkler Skin", AutoSize = true };
             toggleDark.Click += (s, e) => SkinManager.Current = new DarkSkin();
+            toggleDark.Location = new Point(toggleLight.Right + Gap, 16);
 
-            var disabled = new SkinButton { Text = "Deaktiviert", Location = new Point(232, 16), Enabled = false };
+            var disabled = new SkinButton { Text = "Deaktiviert", AutoSize = true, Enabled = false };
+            disabled.Location = new Point(toggleDark.Right + Gap, 16);
 
-            var hoverMe = new SkinButton { Text = "Zeig mir Hover", Location = new Point(16, 60) };
+            // Zeilenhöhe der ersten Reihe: die drei Schaltflächen können je nach
+            // Text und Skin-Zustand unterschiedlich hoch ausfallen.
+            int row1Bottom = Math.Max(toggleLight.Bottom, Math.Max(toggleDark.Bottom, disabled.Bottom));
 
-            var heading = new SkinLabel { Text = "Beschriftung in 9pt Segoe UI", Location = new Point(16, 104) };
+            var hoverMe = new SkinButton { Text = "Zeig mir Hover", AutoSize = true };
+            hoverMe.Location = new Point(16, row1Bottom + RowGap);
 
-            _dpiLabel.Location = new Point(16, 132);
+            var heading = new SkinLabel
+            {
+                Text = "Beschriftung in 9pt Segoe UI",
+                Location = new Point(16, hoverMe.Bottom + RowGap)
+            };
 
-            var nested = new SkinPanel { Location = new Point(16, 168), Size = new Size(400, 120) };
+            _dpiLabel.Location = new Point(16, heading.Bottom + RowGap);
+
+            var nested = new SkinPanel
+            {
+                Location = new Point(16, _dpiLabel.Bottom + RowGap),
+                Size = new Size(400, 120)
+            };
             nested.Controls.Add(new SkinLabel
             {
                 Text = "Panel im Panel — prüft DisplayRectangle und Innenabstand",
