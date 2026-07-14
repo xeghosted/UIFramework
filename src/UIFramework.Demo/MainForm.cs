@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using UIFramework.Controls;
+using UIFramework.Core.Controls;
 using UIFramework.Core.Dpi;
 using UIFramework.Core.Skinning;
 using UIFramework.Core.Skinning.Skins;
@@ -12,7 +13,7 @@ namespace UIFramework.Demo
     /// Der Prüfstand von Auge. Was flimmert, ob der Hover sich richtig anfühlt,
     /// ob die Abstände stimmen — das sieht kein automatischer Test.
     /// </summary>
-    internal sealed class MainForm : Form
+    internal sealed class MainForm : SkinnedForm
     {
         private readonly SkinLabel _dpiLabel = new SkinLabel();
 
