@@ -159,6 +159,21 @@ namespace UIFramework.Core.Rendering
             return rect;
         }
 
+        /// <summary>
+        /// Vergrößert eine gemessene Inhaltsgröße um das DPI-skalierte Padding des
+        /// Appearance — die Umkehrrichtung zu <see cref="GetContentRectangle"/>.
+        /// Lebt hier aus demselben Grund wie jene Methode: die DpiScale-Arithmetik
+        /// darf die Controls-Assembly nicht erreichen (etwa in
+        /// SkinLabel.GetPreferredSize).
+        /// </summary>
+        public static Size InflateByPadding(Size contentSize, ElementAppearance appearance, int dpi)
+        {
+            if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+
+            var padding = DpiScale.Scale(appearance.Padding, dpi);
+            return new Size(contentSize.Width + padding.Horizontal, contentSize.Height + padding.Vertical);
+        }
+
         public static Size MeasureText(Graphics g, string text, ElementAppearance appearance, int dpi)
         {
             if (g == null) throw new ArgumentNullException(nameof(g));
