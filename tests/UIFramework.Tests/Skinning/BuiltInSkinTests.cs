@@ -17,7 +17,7 @@ namespace UIFramework.Tests.Skinning
         [MemberData(nameof(AllSkins))]
         public void Every_element_and_state_is_defined_without_hitting_the_fallback(ISkin skin)
         {
-            string[] elements = { ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Focus };
+            string[] elements = { ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Focus, ElementKeys.Window };
             ElementState[] states =
             {
                 ElementState.Normal, ElementState.Hovered, ElementState.Pressed,
@@ -41,7 +41,7 @@ namespace UIFramework.Tests.Skinning
         [MemberData(nameof(AllSkins))]
         public void Every_appearance_is_opaque_and_has_a_font(ISkin skin)
         {
-            string[] elements = { ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label };
+            string[] elements = { ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Window };
 
             foreach (var element in elements)
             {
@@ -63,6 +63,25 @@ namespace UIFramework.Tests.Skinning
         {
             var light = new LightSkin().GetAppearance(ElementKeys.Panel, ElementState.Normal);
             var dark = new DarkSkin().GetAppearance(ElementKeys.Panel, ElementState.Normal);
+
+            Assert.True(dark.Background.GetBrightness() < light.Background.GetBrightness());
+        }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void The_window_caption_text_is_readable_against_the_caption(ISkin skin)
+        {
+            var window = skin.GetAppearance(ElementKeys.Window, ElementState.Normal);
+
+            // Gleiche Farbe für Leiste und Titel hieße: unlesbarer Titel.
+            Assert.NotEqual(window.Background.ToArgb(), window.ForeColor.ToArgb());
+        }
+
+        [Fact]
+        public void The_dark_window_caption_is_darker_than_the_light_one()
+        {
+            var light = new LightSkin().GetAppearance(ElementKeys.Window, ElementState.Normal);
+            var dark = new DarkSkin().GetAppearance(ElementKeys.Window, ElementState.Normal);
 
             Assert.True(dark.Background.GetBrightness() < light.Background.GetBrightness());
         }

@@ -13,5 +13,15 @@ namespace UIFramework.Core.Skinning
 
         /// <summary>Fokusring — als Überlagerung über jedem Control gezeichnet.</summary>
         public const string Focus = "Focus";
+
+        /// <summary>
+        /// Das Fenster selbst — Titelleiste, Titeltext, Rahmen. Anders als bei allen
+        /// übrigen Elementen zeichnet das Framework hier nichts: der Nicht-Client-Bereich
+        /// gehört Windows, OnPaint erreicht ihn nie. Die Farben gehen über
+        /// DWM-Fensterattribute an das Betriebssystem (siehe SkinnedForm).
+        /// Deshalb sind Corners, BorderWidth und Padding für dieses Element
+        /// bedeutungslos — die Geometrie der Titelleiste bestimmt Windows.
+        /// </summary>
+        public const string Window = "Window";
     }
 }

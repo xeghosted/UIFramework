@@ -34,6 +34,7 @@ namespace UIFramework.Core.Skinning.Skins
             DefinePanel();
             DefineLabel();
             DefineFocus();
+            DefineWindow();
         }
 
         private void DefineButton()
@@ -155,6 +156,22 @@ namespace UIFramework.Core.Skinning.Skins
                 ForeColor = TextPrimary,
                 Font = BodyFont,
                 Padding = new Padding(2)
+            });
+        }
+
+        private void DefineWindow()
+        {
+            Define(ElementKeys.Window, ElementState.Normal, new ElementAppearance
+            {
+                // Der Ton der Fläche darunter (siehe DefinePanel), damit die
+                // Leiste optisch in den Client-Bereich übergeht.
+                Background = SurfaceRaised,
+                BorderColor = BorderSubtle,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(0)
             });
         }
     }
