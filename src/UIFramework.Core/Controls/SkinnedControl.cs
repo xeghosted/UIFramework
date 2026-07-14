@@ -31,6 +31,13 @@ namespace UIFramework.Core.Controls
                 ControlStyles.SupportsTransparentBackColor,
                 true);
 
+            // Runde Ecken lassen vier Eckenquadrate frei, die der Painter nie
+            // füllt. Ohne dies würde Control.OnPaintBackground sie mit einer
+            // undurchsichtigen BackColor überstreichen (Systemgrau). Transparent
+            // reicht das Malen des Hintergrunds an den Elternteil weiter, sodass
+            // dort der wirkliche Elternhintergrund erscheint.
+            BackColor = Color.Transparent;
+
             SkinManager.Register(this);
         }
 
