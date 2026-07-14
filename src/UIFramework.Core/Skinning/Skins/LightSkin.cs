@@ -1,0 +1,160 @@
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace UIFramework.Core.Skinning.Skins
+{
+    /// <summary>
+    /// Heller Skin. Zusammen mit DarkSkin die EINZIGE Stelle im Framework,
+    /// die Farbwerte enthalten darf — Task 14 erzwingt das maschinell.
+    /// </summary>
+    public sealed class LightSkin : SkinBase
+    {
+        private static readonly FontSpec BodyFont = new FontSpec("Segoe UI", 9f);
+
+        private static readonly Color Surface = Color.FromArgb(255, 250, 250, 250);
+        private static readonly Color SurfaceRaised = Color.FromArgb(255, 255, 255, 255);
+        private static readonly Color BorderSubtle = Color.FromArgb(255, 214, 214, 218);
+        private static readonly Color BorderStrong = Color.FromArgb(255, 176, 176, 182);
+        private static readonly Color TextPrimary = Color.FromArgb(255, 28, 28, 32);
+        private static readonly Color TextDisabled = Color.FromArgb(255, 160, 160, 166);
+        private static readonly Color Accent = Color.FromArgb(255, 0, 102, 204);
+        private static readonly Color AccentHover = Color.FromArgb(255, 0, 118, 234);
+        private static readonly Color AccentPressed = Color.FromArgb(255, 0, 84, 168);
+        private static readonly Color DisabledFill = Color.FromArgb(255, 236, 236, 239);
+
+        public override string Name
+        {
+            get { return "Light"; }
+        }
+
+        public LightSkin()
+        {
+            DefineButton();
+            DefinePanel();
+            DefineLabel();
+            DefineFocus();
+        }
+
+        private void DefineButton()
+        {
+            Define(ElementKeys.Button, ElementState.Normal, new ElementAppearance
+            {
+                Background = Accent,
+                BorderColor = Accent,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = SurfaceRaised,
+                Font = BodyFont,
+                Padding = new Padding(12, 6, 12, 6)
+            });
+
+            Define(ElementKeys.Button, ElementState.Hovered, new ElementAppearance
+            {
+                Background = AccentHover,
+                BorderColor = AccentHover,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = SurfaceRaised,
+                Font = BodyFont,
+                Padding = new Padding(12, 6, 12, 6)
+            });
+
+            Define(ElementKeys.Button, ElementState.Pressed, new ElementAppearance
+            {
+                Background = AccentPressed,
+                BorderColor = AccentPressed,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = SurfaceRaised,
+                Font = BodyFont,
+                Padding = new Padding(12, 6, 12, 6)
+            });
+
+            Define(ElementKeys.Button, ElementState.Selected, new ElementAppearance
+            {
+                Background = AccentPressed,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = SurfaceRaised,
+                Font = BodyFont,
+                Padding = new Padding(12, 6, 12, 6)
+            });
+
+            Define(ElementKeys.Button, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(12, 6, 12, 6)
+            });
+        }
+
+        private void DefinePanel()
+        {
+            Define(ElementKeys.Panel, ElementState.Normal, new ElementAppearance
+            {
+                Background = Surface,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(6),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8)
+            });
+
+            Define(ElementKeys.Panel, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(6),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(8)
+            });
+        }
+
+        private void DefineLabel()
+        {
+            Define(ElementKeys.Label, ElementState.Normal, new ElementAppearance
+            {
+                Background = Surface,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(0)
+            });
+
+            Define(ElementKeys.Label, ElementState.Disabled, new ElementAppearance
+            {
+                Background = Surface,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(0)
+            });
+        }
+
+        private void DefineFocus()
+        {
+            Define(ElementKeys.Focus, ElementState.Normal, new ElementAppearance
+            {
+                Background = Color.Transparent,
+                BorderColor = TextPrimary,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+        }
+    }
+}
