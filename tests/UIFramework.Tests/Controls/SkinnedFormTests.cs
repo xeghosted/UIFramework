@@ -96,6 +96,38 @@ namespace UIFramework.Tests.Controls
         }
 
         [Fact]
+        public void The_forms_own_background_takes_the_windows_appearance()
+        {
+            using (var form = new SkinnedForm())
+            {
+                var unused = form.Handle;
+
+                var appearance = SkinManager.Current.GetAppearance(ElementKeys.Window, ElementState.Normal);
+
+                // Nicht nur die Titelleiste: die Fläche des Fensters selbst
+                // soll denselben Ton tragen, sonst blitzt an ungeskinnten
+                // Rändern (z. B. den abgerundeten Ecken eines SkinPanel mit
+                // Dock=Fill) das Windows-Standardgrau durch.
+                Assert.Equal(appearance.Background, form.BackColor);
+            }
+        }
+
+        [Fact]
+        public void Switching_the_skin_updates_the_forms_background_too()
+        {
+            using (var form = new SkinnedForm())
+            {
+                var unused = form.Handle;
+
+                SkinManager.Current = new DarkSkin();
+
+                var appearance = SkinManager.Current.GetAppearance(ElementKeys.Window, ElementState.Normal);
+
+                Assert.Equal(appearance.Background, form.BackColor);
+            }
+        }
+
+        [Fact]
         public void Recreating_the_handle_reapplies_the_caption_to_the_new_window()
         {
             using (var form = new SkinnedForm())

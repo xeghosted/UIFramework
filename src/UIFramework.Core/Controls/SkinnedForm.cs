@@ -20,11 +20,13 @@ namespace UIFramework.Core.Controls
     /// Fenster am Leben — genau das Leck, das die schwache Registrierung
     /// verhindert und vor dem der SkinManager selbst warnt.
     ///
-    /// Diese Klasse skint NUR die Titelleiste (Nicht-Client-Bereich). Der
-    /// Client-Bereich eines bloßen SkinnedForm bleibt Windows-Standard (hell) —
-    /// wer den ebenfalls im Skin-Ton braucht, füllt das Fenster mit einem
-    /// SkinPanel (oder einem gleichwertigen Control). Das ist bewusst so
-    /// begrenzt und kein Defekt.
+    /// Diese Klasse färbt sowohl die Titelleiste (Nicht-Client-Bereich, über DWM)
+    /// als auch die eigene Fläche (BackColor) im selben Ton — beide aus
+    /// Window/Normal. Ein bloßes SkinnedForm ohne eigene Kind-Controls ist damit
+    /// bereits vollständig eingefärbt; wer strukturierten Inhalt braucht, füllt
+    /// das Fenster zusätzlich mit einem SkinPanel (oder einem gleichwertigen
+    /// Control), dessen Rand und abgerundete Ecken dann konsequenterweise auf
+    /// dieselbe Fensterfläche treffen statt auf Windows-Standardgrau.
     /// </summary>
     public class SkinnedForm : Form
     {
@@ -95,6 +97,16 @@ namespace UIFramework.Core.Controls
             if (ReferenceEquals(appearance, _applied)) return;
             _applied = appearance;
             _captionApplyCount++;
+
+            // Die Fläche des Fensters selbst, nicht nur die Titelleiste: sonst
+            // blitzt an unskinnten Rändern (z. B. den abgerundeten Ecken eines
+            // SkinPanel mit Dock=Fill, dessen SkinnedControl absichtlich
+            // transparent zeichnet, um die Elternfarbe durchscheinen zu lassen)
+            // das Windows-Standardgrau von SystemColors.Control durch. Das
+            // Setzen löst selbst Invalidate → OnInvalidated aus, aber _applied
+            // ist bereits zugewiesen, der ReferenceEquals-Merker oben greift
+            // beim Reentry also sofort — keine Endlosschleife.
+            BackColor = appearance.Background;
 
             // Zuerst der Schalter: Die Glyphen der Systemknöpfe folgen ihm, nicht
             // der Titeltextfarbe. Ohne ihn stünden dunkle Glyphen auf dunkler Leiste.
