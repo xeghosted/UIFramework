@@ -2,7 +2,9 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using UIFramework.Controls;
+using UIFramework.Core.Rendering;
 using UIFramework.Core.Skinning;
+using UIFramework.Core.Skinning.Skins;
 using UIFramework.Tests.TestSupport;
 using Xunit;
 
@@ -117,6 +119,104 @@ namespace UIFramework.Tests.Controls
             {
                 // Ein Container ist kein Bedienelement.
                 Assert.False(panel.TabStop);
+            }
+        }
+
+        /// <summary>
+        /// Regression für die zweite Hälfte des DPI-Defekts aus dem Demo-Programm
+        /// (Task-15-Report, Abschnitt "Fix: Autorengesetzte Größen skalieren mit
+        /// der DPI"): das verschachtelte Panel in MainForm hat eine autoren-
+        /// gesetzte, feste Größe (400×120) — anders als die AutoSize-Buttons folgt
+        /// diese Größe nicht aus Inhalt, sondern ist eine reine Entwurfsvorgabe.
+        /// Padding und Rahmenbreite des Skins skalieren mit der DPI (korrekt), die
+        /// Panelgröße selbst aber nicht — der Innenraum SCHRUMPFT also relativ zur
+        /// (ebenfalls mit der DPI wachsenden) Beschriftung, exakt umgekehrt zu dem,
+        /// was nötig wäre.
+        ///
+        /// MainForm behebt das, indem es die gesamte Fensterhierarchie einmalig per
+        /// <see cref="Control.Scale(SizeF)"/> mit dem Faktor dpi/96 skaliert (siehe
+        /// MainForm.OnLoad) — demselben Aufruf, den WinForms' eigenes
+        /// ContainerControl.PerformAutoScale intern täte. Dieser Test ruft exakt
+        /// dieselbe WinForms-API mit demselben Faktor direkt auf einem Panel auf,
+        /// das die Demo-Größe/den Demo-Text nachbildet, und prüft dieselbe
+        /// Interior-vs-Bedarf-Rechnung wie die manuelle Probe aus dem Report.
+        ///
+        /// Bewusst kein Test über eine echte <see cref="Control.DeviceDpi"/> &gt; 96:
+        /// siehe SkinButtonTests.AutoSize_grows_the_button_wide_enough_for_its_caption
+        /// für das dort dokumentierte, hier erneut bestätigte Experiment — DeviceDpi
+        /// ist im xUnit-Testhost-Prozess nicht pro Instanz überschreibbar. Anders als
+        /// der Button-Fix lässt sich der Panel-Fix aber OHNE DeviceDpi vollständig
+        /// ehrlich testen: sowohl Control.Scale(SizeF) als auch
+        /// SkinPainter.GetContentRectangle/MeasureText nehmen die DPI als
+        /// expliziten Parameter bzw. Faktor entgegen, unabhängig von
+        /// Control.DeviceDpi/Prozess-Awareness — exakt der Mechanismus, den
+        /// MainForm.OnLoad tatsächlich verwendet.
+        /// </summary>
+        [Theory]
+        [InlineData(120)]
+        [InlineData(144)]
+        public void Scaling_the_panel_like_MainForm_does_leaves_room_for_the_nested_caption(int dpi)
+        {
+            const string nestedLabelText = "Panel im Panel — prüft DisplayRectangle und Innenabstand";
+
+            SkinManager.Current = new LightSkin();
+            var panelAppearance = SkinManager.Current.GetAppearance(ElementKeys.Panel, ElementState.Normal);
+            var labelAppearance = SkinManager.Current.GetAppearance(ElementKeys.Label, ElementState.Normal);
+
+            using (var panel = new SkinPanel())
+            using (var bitmap = new Bitmap(1, 1))
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                panel.Location = new Point(16, 16);
+                panel.Size = new Size(400, 120);
+
+                // Derselbe Aufruf wie MainForm.OnLoad: Faktor dpi/96, auf die
+                // gesamte author-gesetzte Bounds-Hierarchie angewandt.
+                float factor = dpi / 96f;
+                panel.Scale(new SizeF(factor, factor));
+
+                var interior = SkinPainter.GetContentRectangle(panel.ClientRectangle, panelAppearance, dpi);
+                var measured = SkinPainter.MeasureText(g, nestedLabelText, labelAppearance, dpi);
+                var needed = SkinPainter.InflateByPadding(measured, labelAppearance, dpi);
+
+                Assert.True(interior.Width >= needed.Width,
+                    string.Format(
+                        "Panel-Innenraum ist bei {0} dpi {1}px breit, die Beschriftung braucht aber {2}px — sie würde abgeschnitten.",
+                        dpi, interior.Width, needed.Width));
+            }
+        }
+
+        /// <summary>
+        /// Gegenprobe: ohne die Skalierung aus MainForm.OnLoad (unskaliertes
+        /// 400×120-Panel) reicht der Innenraum bei 120/144 dpi nicht — das ist der
+        /// ursprünglich gemeldete Defekt. Beweist, dass der obige Test wirklich die
+        /// Skalierung prüft und nicht zufällig auch ohne sie bestünde.
+        /// </summary>
+        [Theory]
+        [InlineData(120)]
+        [InlineData(144)]
+        public void Without_scaling_the_fixed_400_wide_panel_is_too_narrow_for_the_nested_caption(int dpi)
+        {
+            const string nestedLabelText = "Panel im Panel — prüft DisplayRectangle und Innenabstand";
+
+            SkinManager.Current = new LightSkin();
+            var panelAppearance = SkinManager.Current.GetAppearance(ElementKeys.Panel, ElementState.Normal);
+            var labelAppearance = SkinManager.Current.GetAppearance(ElementKeys.Label, ElementState.Normal);
+
+            using (var panel = new SkinPanel())
+            using (var bitmap = new Bitmap(1, 1))
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                panel.Size = new Size(400, 120);
+
+                var interior = SkinPainter.GetContentRectangle(panel.ClientRectangle, panelAppearance, dpi);
+                var measured = SkinPainter.MeasureText(g, nestedLabelText, labelAppearance, dpi);
+                var needed = SkinPainter.InflateByPadding(measured, labelAppearance, dpi);
+
+                Assert.True(interior.Width < needed.Width,
+                    "Diese Gegenprobe sollte bei " + dpi + " dpi ohne Skalierung fehlschlagen (Innenraum reicht nicht) " +
+                    "-- tut sie das nicht mehr, hat sich die Textmetrik oder das Padding so verändert, dass der " +
+                    "ursprüngliche Defekt gar nicht mehr reproduzierbar ist.");
             }
         }
     }
