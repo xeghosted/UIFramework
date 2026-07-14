@@ -21,8 +21,14 @@ namespace UIFramework.Core.Skinning
 
         public CornerRadius(int topLeft, int topRight, int bottomRight, int bottomLeft)
         {
-            if (topLeft < 0 || topRight < 0 || bottomRight < 0 || bottomLeft < 0)
+            if (topLeft < 0)
                 throw new ArgumentOutOfRangeException(nameof(topLeft), "Eckradien dürfen nicht negativ sein.");
+            if (topRight < 0)
+                throw new ArgumentOutOfRangeException(nameof(topRight), "Eckradien dürfen nicht negativ sein.");
+            if (bottomRight < 0)
+                throw new ArgumentOutOfRangeException(nameof(bottomRight), "Eckradien dürfen nicht negativ sein.");
+            if (bottomLeft < 0)
+                throw new ArgumentOutOfRangeException(nameof(bottomLeft), "Eckradien dürfen nicht negativ sein.");
 
             TopLeft = topLeft;
             TopRight = topRight;

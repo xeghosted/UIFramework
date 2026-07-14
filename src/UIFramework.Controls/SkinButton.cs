@@ -24,6 +24,7 @@ namespace UIFramework.Controls
             SetStyle(ControlStyles.Selectable, true);
             TabStop = true;
             Size = new Size(96, 30);
+            AutoSize = true;
         }
 
         protected override string ElementKey
@@ -32,14 +33,16 @@ namespace UIFramework.Controls
         }
 
         /// <summary>
-        /// Wenn gesetzt, richtet sich die Größe nach dem tatsächlichen Textbedarf
-        /// (siehe <see cref="GetPreferredSize"/>) statt der festen 96×30-Vorgabe
-        /// aus dem Konstruktor. Standardmäßig aus, damit bestehender Code, der sich
-        /// auf die feste Größe verlässt, unverändert bleibt — wer variable
-        /// Beschriftungen zeigt (wie die Demo), schaltet es gezielt ein.
+        /// Wenn gesetzt (Standard, wie bei <see cref="SkinLabel.AutoSize"/>),
+        /// richtet sich die Größe nach dem tatsächlichen Textbedarf (siehe
+        /// <see cref="GetPreferredSize"/>) statt der festen 96×30-Vorgabe aus dem
+        /// Konstruktor. Ohne das schneidet der Text mit TextFormatFlags.EndEllipsis
+        /// ab, sobald er breiter ist als die feste Größe — insbesondere oberhalb von
+        /// 96 dpi, wo die Schrift wächst, aber eine feste Größe nicht mitwüchse. Wer
+        /// bewusst eine feste Größe braucht, schaltet AutoSize gezielt aus.
         /// </summary>
         [Category("Layout")]
-        [DefaultValue(false)]
+        [DefaultValue(true)]
         public override bool AutoSize
         {
             get { return base.AutoSize; }

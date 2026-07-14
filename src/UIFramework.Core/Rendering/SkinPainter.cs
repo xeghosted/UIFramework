@@ -80,7 +80,6 @@ namespace UIFramework.Core.Rendering
                 using (var path = RoundedRectangle.Create(rect, corners))
                 {
                     var pen = ResourceCache.Shared.GetPen(appearance.BorderColor, width);
-                    pen.Alignment = PenAlignment.Center;
                     g.DrawPath(pen, path);
                 }
             }
@@ -107,9 +106,12 @@ namespace UIFramework.Core.Rendering
 
         /// <summary>
         /// Wie <see cref="DrawText"/>, nimmt aber unbeschnittene Bounds entgegen und
-        /// zieht das Padding des Appearance selbst über DpiScale ab — spiegelt den
-        /// Ansatz von <see cref="DrawFocus"/>. So muss kein Control (Controls-Assembly)
-        /// selbst mit DpiScale rechnen.
+        /// zieht Padding UND Rahmenbreite des Appearance selbst über DpiScale ab.
+        /// Einzugs-Konvention: Padding + Rahmenbreite auf allen vier Seiten — dieselbe
+        /// wie <see cref="GetContentRectangle"/> und <see cref="InflateByPadding"/>
+        /// (NICHT dieselbe wie <see cref="DrawFocus"/>, die bewusst nur um das
+        /// Padding einzieht). So muss kein Control (Controls-Assembly) selbst mit
+        /// DpiScale rechnen.
         /// </summary>
         public static void DrawPaddedText(Graphics g, string text, Rectangle bounds, ElementAppearance appearance,
             int dpi, ContentAlignment alignment)
@@ -118,21 +120,18 @@ namespace UIFramework.Core.Rendering
             if (appearance == null) throw new ArgumentNullException(nameof(appearance));
             if (string.IsNullOrEmpty(text)) return;
 
-            var padding = DpiScale.Scale(appearance.Padding, dpi);
-            var content = new Rectangle(
-                bounds.Left + padding.Left,
-                bounds.Top + padding.Top,
-                bounds.Width - padding.Horizontal,
-                bounds.Height - padding.Vertical);
+            var content = GetContentRectangle(bounds, appearance, dpi);
 
             DrawText(g, text, content, appearance, dpi, alignment);
         }
 
         /// <summary>
         /// Berechnet das Innenrechteck für Kind-Inhalte: bounds abzüglich skaliertem
-        /// Padding und skalierter Rahmenbreite auf allen vier Seiten. Nicht-zeichnende
-        /// Hilfsmethode wie <see cref="MeasureText"/> — lebt hier, damit die
-        /// DpiScale-Arithmetik nicht in die Controls-Assembly abwandert (etwa in
+        /// Padding und skalierter Rahmenbreite auf allen vier Seiten. Einzugs-
+        /// Konvention: Padding + Rahmenbreite (nicht nur Padding) — dieselbe wie
+        /// <see cref="DrawPaddedText"/> und <see cref="InflateByPadding"/>. Nicht-
+        /// zeichnende Hilfsmethode wie <see cref="MeasureText"/> — lebt hier, damit
+        /// die DpiScale-Arithmetik nicht in die Controls-Assembly abwandert (etwa in
         /// SkinPanel.DisplayRectangle).
         /// </summary>
         public static Rectangle GetContentRectangle(Rectangle bounds, ElementAppearance appearance, int dpi)
@@ -160,18 +159,24 @@ namespace UIFramework.Core.Rendering
         }
 
         /// <summary>
-        /// Vergrößert eine gemessene Inhaltsgröße um das DPI-skalierte Padding des
-        /// Appearance — die Umkehrrichtung zu <see cref="GetContentRectangle"/>.
-        /// Lebt hier aus demselben Grund wie jene Methode: die DpiScale-Arithmetik
-        /// darf die Controls-Assembly nicht erreichen (etwa in
-        /// SkinLabel.GetPreferredSize).
+        /// Vergrößert eine gemessene Inhaltsgröße um das DPI-skalierte Padding UND
+        /// die DPI-skalierte Rahmenbreite des Appearance — die Umkehrrichtung zu
+        /// <see cref="GetContentRectangle"/>. Einzugs-Konvention: Padding +
+        /// Rahmenbreite auf allen vier Seiten, wie bei <see cref="GetContentRectangle"/>
+        /// und <see cref="DrawPaddedText"/>. Lebt hier aus demselben Grund wie jene
+        /// Methode: die DpiScale-Arithmetik darf die Controls-Assembly nicht
+        /// erreichen (etwa in SkinLabel.GetPreferredSize).
         /// </summary>
         public static Size InflateByPadding(Size contentSize, ElementAppearance appearance, int dpi)
         {
             if (appearance == null) throw new ArgumentNullException(nameof(appearance));
 
             var padding = DpiScale.Scale(appearance.Padding, dpi);
-            return new Size(contentSize.Width + padding.Horizontal, contentSize.Height + padding.Vertical);
+            int border = DpiScale.Scale(appearance.BorderWidth, dpi);
+
+            return new Size(
+                contentSize.Width + padding.Horizontal + (border * 2),
+                contentSize.Height + padding.Vertical + (border * 2));
         }
 
         public static Size MeasureText(Graphics g, string text, ElementAppearance appearance, int dpi)
@@ -185,6 +190,14 @@ namespace UIFramework.Core.Rendering
                 TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
         }
 
+        /// <summary>
+        /// Zeichnet den Fokusring. Einzugs-Konvention bewusst abweichend von
+        /// <see cref="GetContentRectangle"/>/<see cref="DrawPaddedText"/>/
+        /// <see cref="InflateByPadding"/>: zieht NUR das Padding ab, NICHT die
+        /// Rahmenbreite — der Ring soll auf dem Rahmen liegen, nicht innerhalb von
+        /// ihm. Ein Angleichen an die Padding+Rahmen-Konvention würde den Ring bei
+        /// jedem Rahmen &gt; 0 sichtbar verkleinern (frühere Review-Entscheidung).
+        /// </summary>
         public static void DrawFocus(Graphics g, Rectangle bounds, ElementAppearance appearance, int dpi)
         {
             if (g == null) throw new ArgumentNullException(nameof(g));

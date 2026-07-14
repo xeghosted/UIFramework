@@ -46,6 +46,39 @@ namespace UIFramework.Tests.Skinning
             Assert.Throws<ArgumentOutOfRangeException>(() => new CornerRadius(-1));
         }
 
+        /// <summary>
+        /// Finding 5: die Meldung nannte bislang immer "topLeft", selbst wenn ein
+        /// anderer Parameter der eigentliche Übeltäter war. Jeder Parameter muss
+        /// sich selbst korrekt benennen.
+        /// </summary>
+        [Fact]
+        public void Negative_topLeft_is_reported_by_its_own_name()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new CornerRadius(-1, 0, 0, 0));
+            Assert.Equal("topLeft", ex.ParamName);
+        }
+
+        [Fact]
+        public void Negative_topRight_is_reported_by_its_own_name()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new CornerRadius(0, -1, 0, 0));
+            Assert.Equal("topRight", ex.ParamName);
+        }
+
+        [Fact]
+        public void Negative_bottomRight_is_reported_by_its_own_name()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new CornerRadius(0, 0, -1, 0));
+            Assert.Equal("bottomRight", ex.ParamName);
+        }
+
+        [Fact]
+        public void Negative_bottomLeft_is_reported_by_its_own_name()
+        {
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => new CornerRadius(0, 0, 0, -1));
+            Assert.Equal("bottomLeft", ex.ParamName);
+        }
+
         [Fact]
         public void Equal_values_are_equal_and_share_a_hash_code()
         {

@@ -58,6 +58,47 @@ namespace UIFramework.Tests.Controls
         }
 
         /// <summary>
+        /// Definiert nur Button (undurchsichtiger Hintergrund, kein Rahmen, kein
+        /// Padding) und Focus (transparenter Hintergrund, Rahmenbreite 2, kein
+        /// Padding) — genug, um den Fokusring isoliert auf der Kante zu prüfen,
+        /// ohne dass ein eigener Button-Rahmen oder Padding das Ergebnis verfälscht.
+        /// </summary>
+        private sealed class SingleColorFocusSkin : SkinBase
+        {
+            public SingleColorFocusSkin(Color buttonBackground, Color focusColor)
+            {
+                Define(ElementKeys.Button, ElementState.Normal, new ElementAppearance
+                {
+                    Background = buttonBackground,
+                    BackgroundGradientEnd = null,
+                    BorderColor = Color.Transparent,
+                    BorderWidth = 0,
+                    Corners = CornerRadius.None,
+                    ForeColor = Color.FromArgb(255, 255, 255, 255),
+                    Font = new FontSpec("Segoe UI", 9f),
+                    Padding = new Padding(0)
+                });
+
+                Define(ElementKeys.Focus, ElementState.Normal, new ElementAppearance
+                {
+                    Background = Color.Transparent,
+                    BackgroundGradientEnd = null,
+                    BorderColor = focusColor,
+                    BorderWidth = 2,
+                    Corners = CornerRadius.None,
+                    ForeColor = focusColor,
+                    Font = new FontSpec("Segoe UI", 9f),
+                    Padding = new Padding(0)
+                });
+            }
+
+            public override string Name
+            {
+                get { return "SingleColorFocus"; }
+            }
+        }
+
+        /// <summary>
         /// Zählt Invalidate-Aufrufe über das echte Invalidated-Ereignis von
         /// Control — dafür braucht das Control ein Fensterhandle, sonst verwirft
         /// Control.Invalidate() den Aufruf stillschweigend, ohne das Ereignis
@@ -110,6 +151,11 @@ namespace UIFramework.Tests.Controls
 
             using (var button = new SkinButton())
             {
+                // AutoSize ist seit diesem Fix Standard: ohne das Abschalten würde
+                // der Textwechsel unten die explizit gesetzte Größe sofort wieder
+                // überschreiben (siehe SkinButton.OnTextChanged) — dieser Test will
+                // aber gezielt eine 120x30-Fläche prüfen, nicht das Autosizing.
+                button.AutoSize = false;
                 button.Size = new Size(120, 30);
                 button.Text = "MMMMMMMM";
 
@@ -140,6 +186,22 @@ namespace UIFramework.Tests.Controls
             using (var button = new SkinButton())
             {
                 Assert.Equal(ContentAlignment.MiddleCenter, button.TextAlignment);
+            }
+        }
+
+        /// <summary>
+        /// Spiegelt SkinLabel.AutoSize, das ebenfalls standardmäßig an ist: gleicher
+        /// Mechanismus (GetPreferredSize über SkinPainter), kein Grund für
+        /// unterschiedliche Vorgaben. Ohne diesen Standard schneidet der Text mit
+        /// TextFormatFlags.EndEllipsis oberhalb von 96 dpi ab, siehe
+        /// AutoSize_grows_the_button_wide_enough_for_its_caption unten.
+        /// </summary>
+        [Fact]
+        public void AutoSize_defaults_to_true()
+        {
+            using (var button = new SkinButton())
+            {
+                Assert.True(button.AutoSize);
             }
         }
 
@@ -217,6 +279,77 @@ namespace UIFramework.Tests.Controls
                     button.DrawToBitmap(bitmap, new Rectangle(0, 0, 80, 30));
 
                     Assert.Equal(PerStateButtonSkin.DisabledColor.ToArgb(), bitmap.GetPixel(40, 15).ToArgb());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Finding 3: DrawFocus hatte bislang null Testabdeckung — kein Test malte
+        /// je einen Fokusring, setzte Focused oder prüfte ShowFocusRing. Dieser
+        /// Test rendert einen wirklich fokussierten SkinButton über DrawToBitmap
+        /// (also den echten Pfad SkinnedControl.OnPaint -&gt; DrawFocus) und prüft,
+        /// dass die Fokusfarbe tatsächlich auf einem konkreten Pixel landet.
+        ///
+        /// Focused simulieren statt echten Betriebssystem-Fokus zu verlangen:
+        /// SetFocus/Fensteraktivierung sind in einer automatisierten Umgebung
+        /// nicht zuverlässig steuerbar (siehe ProbeFocusableSkinButton). Control.
+        /// Focused ist virtual — dafür gedacht, siehe dortige Begründung.
+        /// </summary>
+        [Fact]
+        public void A_focused_button_paints_the_focus_ring_colour_on_the_edge()
+        {
+            var buttonBackground = Color.FromArgb(255, 5, 5, 5);
+            var focusColor = Color.FromArgb(255, 250, 10, 10);
+
+            var skin = new SingleColorFocusSkin(buttonBackground, focusColor);
+            SkinManager.Current = skin;
+
+            using (var button = new ProbeFocusableSkinButton())
+            {
+                button.AutoSize = false;
+                button.Size = new Size(40, 40);
+                button.Text = "";
+                button.FocusedOverride = true;
+
+                using (var bitmap = new Bitmap(40, 40))
+                {
+                    button.DrawToBitmap(bitmap, new Rectangle(0, 0, 40, 40));
+
+                    // Wie SkinPainterTests.A_border_paints_on_the_edge_but_not_in_the_centre:
+                    // der Rahmen (hier: Fokusring, BorderWidth 2, Padding 0) liegt auf der
+                    // Kante, nicht in der Mitte.
+                    Assert.Equal(focusColor.ToArgb(), bitmap.GetPixel(20, 0).ToArgb());
+                    Assert.Equal(buttonBackground.ToArgb(), bitmap.GetPixel(20, 20).ToArgb());
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gegenprobe zum vorigen Test: ohne Fokus darf an derselben Kanten-Stelle
+        /// keine Fokusfarbe erscheinen. Beweist, dass der positive Test wirklich
+        /// den Fokuszustand prüft, nicht zufällig eine ohnehin vorhandene Farbe.
+        /// </summary>
+        [Fact]
+        public void An_unfocused_button_does_not_paint_the_focus_ring()
+        {
+            var buttonBackground = Color.FromArgb(255, 5, 5, 5);
+            var focusColor = Color.FromArgb(255, 250, 10, 10);
+
+            var skin = new SingleColorFocusSkin(buttonBackground, focusColor);
+            SkinManager.Current = skin;
+
+            using (var button = new ProbeFocusableSkinButton())
+            {
+                button.AutoSize = false;
+                button.Size = new Size(40, 40);
+                button.Text = "";
+                button.FocusedOverride = false;
+
+                using (var bitmap = new Bitmap(40, 40))
+                {
+                    button.DrawToBitmap(bitmap, new Rectangle(0, 0, 40, 40));
+
+                    Assert.NotEqual(focusColor.ToArgb(), bitmap.GetPixel(20, 0).ToArgb());
                 }
             }
         }
@@ -305,17 +438,20 @@ namespace UIFramework.Tests.Controls
         }
 
         /// <summary>
-        /// Gegenprobe: ohne AutoSize bleibt das bisherige Verhalten unverändert
-        /// — die feste 96×30-Größe aus dem Konstruktor überlebt auch einen
-        /// Textwechsel. Die Änderung ist rein additiv, kein bestehender
-        /// Aufrufer, der sich auf die feste Größe verlässt, wird überrascht.
+        /// Prüft das Opt-out: mit AutoSize explizit ausgeschaltet löst ein
+        /// Textwechsel kein AdjustSize() mehr aus (siehe SkinButton.OnTextChanged),
+        /// eine explizit gesetzte Größe bleibt also erhalten. AutoSize ist seit
+        /// diesem Fix standardmäßig an (siehe AutoSize_defaults_to_true) — dieser
+        /// Test verifiziert nur noch, dass das Abschalten wirklich wirkt, nicht
+        /// mehr irgendeine "bestehende" Vorgabe.
         /// </summary>
         [Fact]
-        public void Without_AutoSize_the_legacy_fixed_size_survives_a_text_change()
+        public void Opting_out_of_AutoSize_keeps_an_explicitly_set_size_across_a_text_change()
         {
             using (var button = new SkinButton())
             {
-                Assert.Equal(new Size(96, 30), button.Size);
+                button.AutoSize = false;
+                button.Size = new Size(96, 30);
 
                 button.Text = "Ein erheblich längerer Text als vorher";
 

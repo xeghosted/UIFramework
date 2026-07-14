@@ -41,10 +41,32 @@ namespace UIFramework.Demo
             // Entwurfs- und Ist-Wert stets identisch sieht und nie skaliert — ein
             // .NET-Framework-4.8-Verhalten, kein Bug in diesem Code. Deshalb ruft
             // OnLoad unten Scale(...) selbst auf, exakt der Aufruf, den
-            // PerformAutoScale intern täte. Konfliktfrei mit SkinButton/SkinLabel-
-            // AutoSize: deren OnDpiChangedAfterParent setzt die Größe absolut aus
-            // GetPreferredSize neu, das gewinnt unabhängig von der Aufrufreihenfolge
-            // gegen jede vorherige multiplikative Skalierung.
+            // PerformAutoScale intern täte.
+            //
+            // ACHTUNG bei AutoSize-Controls (SkinButton/SkinLabel): Scale(SizeF)
+            // multipliziert Bounds unconditionally für JEDES Kind der Hierarchie —
+            // SkinButton/SkinLabel überschreiben SetBoundsCore nicht, es gibt also
+            // keine Bremse, die eine bereits korrekte AutoSize-Größe verschont.
+            // Ob diese Größe zum Zeitpunkt von OnLoad schon korrekt ist (weil vorher
+            // ein echtes OnDpiChangedAfterParent gefeuert hat) oder noch auf der
+            // 96-dpi-Baseline steht, lässt sich nicht verlässlich vorhersagen —
+            // OnDpiChangedAfterParent feuert bei einer DPI-ÄNDERUNG, und bei der
+            // erstmaligen Fenstererzeugung auf einem Nicht-96-dpi-Monitor ist
+            // ungewiss, ob das überhaupt als "Änderung" zählt.
+            //
+            // Live an diesem Fenster gemessen (Task-Report zu diesem Fix, echter
+            // Lauf bei DeviceDpi 120/125%): "Zeig mir Hover" — GetPreferredSize bei
+            // 96 dpi (Testhost-Baseline) liefert 105px; korrekt EINMAL auf 120 dpi
+            // skaliert (105 × 1,25) ergibt ~131px — exakt das, was ReapplyAutoSize
+            // unten tatsächlich liefert (gemessen: 132px). Ohne ReapplyAutoSize
+            // (Scale() allein trifft die AutoSize-Controls unconditionally mit)
+            // maß derselbe Button 165px — 105 × 1,25², also ein zweites Mal mit
+            // demselben Faktor multipliziert: der Doppel-Skalierungs-Defekt war in
+            // diesem Prozess real reproduzierbar, nicht nur theoretisch möglich.
+            // OnLoad unten behebt das, indem es AutoSize-Controls NACH Scale(...)
+            // explizit und absolut aus GetPreferredSize neu setzt (ReapplyAutoSize),
+            // statt sich auf die Aufrufreihenfolge mit OnDpiChangedAfterParent zu
+            // verlassen.
             AutoScaleDimensions = new SizeF(96F, 96F);
             AutoScaleMode = AutoScaleMode.Dpi;
 
@@ -115,9 +137,13 @@ namespace UIFramework.Demo
         /// von Hand ausgelöst, weil dieser Aufruf bei einem PerMonitorV2-Prozess
         /// auf .NET Framework 4.8 nachweislich (siehe Konstruktor-Kommentar oben)
         /// nicht von selbst passiert. DeviceDpi ist an dieser Stelle (nach dem
-        /// Fensterhandle, vor OnShown) bereits die echte Monitor-DPI. AutoSize-
-        /// Controls (SkinButton/SkinLabel) sind hiervon unberührt: die überschreiben
-        /// ihre Größe ohnehin absolut über OnDpiChangedAfterParent.
+        /// Fensterhandle, vor OnShown) bereits die echte Monitor-DPI.
+        ///
+        /// AutoSize-Controls (SkinButton/SkinLabel) NICHT der Scale()-Vervielfachung
+        /// überlassen (siehe Konstruktor-Kommentar): ReapplyAutoSize setzt ihre
+        /// Größe danach explizit und absolut aus GetPreferredSize neu, bei der zu
+        /// diesem Zeitpunkt garantiert echten DeviceDpi — unabhängig davon, ob
+        /// Scale() sie soeben (fälschlich) mitskaliert hat oder nicht.
         /// </summary>
         protected override void OnLoad(EventArgs e)
         {
@@ -127,6 +153,29 @@ namespace UIFramework.Demo
             {
                 float factor = DpiScale.ScaleF(1f, DeviceDpi);
                 Scale(new SizeF(factor, factor));
+            }
+
+            ReapplyAutoSize(this);
+        }
+
+        /// <summary>
+        /// Setzt für jedes AutoSize-SkinButton/-SkinLabel in der Hierarchie die
+        /// Größe absolut aus GetPreferredSize neu — unabhängig davon, was
+        /// Control.Scale(SizeF) zuvor mit der Größe gemacht hat (siehe OnLoad).
+        /// Positionen (Location) fasst das bewusst nicht an: die kommen bereits
+        /// korrekt aus Scale(), das die gesamte author-gesetzte Layout-Geometrie
+        /// gleichförmig mitskaliert.
+        /// </summary>
+        private static void ReapplyAutoSize(Control root)
+        {
+            foreach (Control child in root.Controls)
+            {
+                if (child.AutoSize && (child is SkinButton || child is SkinLabel))
+                {
+                    child.Size = child.GetPreferredSize(Size.Empty);
+                }
+
+                ReapplyAutoSize(child);
             }
         }
 
