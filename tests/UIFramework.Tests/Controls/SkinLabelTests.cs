@@ -11,6 +11,41 @@ namespace UIFramework.Tests.Controls
     [Collection(SkinManagerCollection.Name)]
     public class SkinLabelTests : IDisposable
     {
+        /// <summary>
+        /// Anders als StubSkin: definiert eine Erscheinung ausschließlich für
+        /// ElementKeys.Label. StubSkin weist Button, Panel, Label und Focus
+        /// dieselbe Instanz zu, sodass ein Test darauf bestünde, egal welcher
+        /// dieser Schlüssel von SkinLabel.ElementKey zurückgegeben würde. Mit
+        /// diesem Skin fällt ein falscher Schlüssel auf SkinBase.FallbackAppearance
+        /// zurück (Padding 4, graue Hintergrundfarbe) und der Test schlägt
+        /// sichtbar fehl, weil hier bewusst ein abweichendes Padding (6) und eine
+        /// unverwechselbare Hintergrundfarbe verwendet werden.
+        /// </summary>
+        private sealed class LabelOnlySkin : SkinBase
+        {
+            public static readonly Color LabelColor = Color.FromArgb(255, 12, 34, 56);
+
+            public LabelOnlySkin()
+            {
+                Define(ElementKeys.Label, ElementState.Normal, new ElementAppearance
+                {
+                    Background = LabelColor,
+                    BackgroundGradientEnd = null,
+                    BorderColor = Color.Transparent,
+                    BorderWidth = 0,
+                    Corners = CornerRadius.None,
+                    ForeColor = Color.FromArgb(255, 255, 255, 255),
+                    Font = new FontSpec("Segoe UI", 9f),
+                    Padding = new Padding(6)
+                });
+            }
+
+            public override string Name
+            {
+                get { return "LabelOnly"; }
+            }
+        }
+
         public SkinLabelTests()
         {
             SkinManager.ResetForTests();
@@ -52,8 +87,8 @@ namespace UIFramework.Tests.Controls
         [Fact]
         public void The_preferred_size_includes_the_skin_padding()
         {
-            // StubSkin: Padding(4) auf allen Seiten.
-            SkinManager.Current = new StubSkin(Color.FromArgb(255, 5, 5, 5));
+            // LabelOnlySkin: Padding(6) auf allen Seiten.
+            SkinManager.Current = new LabelOnlySkin();
 
             using (var label = new SkinLabel())
             {
@@ -66,8 +101,8 @@ namespace UIFramework.Tests.Controls
                     var appearance = SkinManager.Current.GetAppearance(ElementKeys.Label, ElementState.Normal);
                     var textSize = UIFramework.Core.Rendering.SkinPainter.MeasureText(g, "X", appearance, label.DeviceDpi);
 
-                    Assert.Equal(textSize.Width + 8, preferred.Width);
-                    Assert.Equal(textSize.Height + 8, preferred.Height);
+                    Assert.Equal(textSize.Width + 12, preferred.Width);
+                    Assert.Equal(textSize.Height + 12, preferred.Height);
                 }
             }
         }
@@ -75,7 +110,7 @@ namespace UIFramework.Tests.Controls
         [Fact]
         public void It_paints_the_label_background_of_the_current_skin()
         {
-            SkinManager.Current = new StubSkin(Color.FromArgb(255, 60, 70, 80));
+            SkinManager.Current = new LabelOnlySkin();
 
             using (var label = new SkinLabel())
             {
@@ -87,7 +122,7 @@ namespace UIFramework.Tests.Controls
                 {
                     label.DrawToBitmap(bitmap, new Rectangle(0, 0, 80, 24));
 
-                    Assert.Equal(Color.FromArgb(255, 60, 70, 80).ToArgb(), bitmap.GetPixel(40, 12).ToArgb());
+                    Assert.Equal(LabelOnlySkin.LabelColor.ToArgb(), bitmap.GetPixel(40, 12).ToArgb());
                 }
             }
         }
