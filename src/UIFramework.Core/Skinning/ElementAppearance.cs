@@ -128,7 +128,7 @@ namespace UIFramework.Core.Skinning
                 throw new InvalidOperationException(
                     "Diese ElementAppearance ist eingefroren und gehört einem Skin. " +
                     "Sie zu ändern würde jedes Control app-weit betreffen. " +
-                    "Wer eine Abwandlung braucht, baut eine neue Erscheinung.");
+                    "Wer eine Abwandlung braucht, ruft Clone() auf und ändert die Kopie.");
         }
     }
 }

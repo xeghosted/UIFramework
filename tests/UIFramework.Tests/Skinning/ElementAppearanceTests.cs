@@ -160,6 +160,32 @@ namespace UIFramework.Tests.Skinning
         }
 
         [Fact]
+        public void Clone_preserves_all_writable_properties_as_verified_by_reflection()
+        {
+            // Der Test daneben zählt die acht Eigenschaften von Hand auf — genau die
+            // Handarbeit, gegen die Clone() selbst existiert. Kommt eine neunte
+            // Eigenschaft dazu und fehlt in Clone(), schweigen der Compiler und
+            // jener Test; dieser hier fällt um. Teilprojekt 2 und 6 werden diesen
+            // Typ erweitern, dann ist der Fall nicht mehr theoretisch.
+            var original = CreateFullyPopulatedFrozenAppearance();
+
+            var clone = original.Clone();
+
+            var properties = typeof(ElementAppearance).GetProperties();
+            foreach (var prop in properties)
+            {
+                // Nur public get und public set: das filtert IsFrozen (private set) und
+                // HasGradient (kein set) automatisch heraus.
+                if (prop.CanRead && prop.GetSetMethod(false) != null)
+                {
+                    var originalValue = prop.GetValue(original);
+                    var cloneValue = prop.GetValue(clone);
+                    Assert.Equal(originalValue, cloneValue);
+                }
+            }
+        }
+
+        [Fact]
         public void Changing_the_clone_does_not_touch_the_original()
         {
             var original = CreateFullyPopulatedFrozenAppearance();
