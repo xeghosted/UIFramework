@@ -16,16 +16,30 @@ namespace UIFramework.Core.Skinning
         /// Letzte Rettung, wenn ein Skin ein Element gar nicht kennt.
         /// Bewusst neutral und bewusst sichtbar — nie ein unsichtbares Control.
         /// </summary>
-        public static readonly ElementAppearance FallbackAppearance = new ElementAppearance
+        public static readonly ElementAppearance FallbackAppearance = CreateFallback();
+
+        /// <summary>
+        /// Warum eine Fabrikmethode statt eines Objekt-Initialisierers: Diese
+        /// Erscheinung läuft nie durch Define und würde sonst als einzige
+        /// uneingefroren herausgehen — ausgerechnet die am breitesten geteilte
+        /// Instanz im Framework.
+        /// </summary>
+        private static ElementAppearance CreateFallback()
         {
-            Background = Color.FromArgb(255, 128, 128, 128),
-            BorderColor = Color.FromArgb(255, 96, 96, 96),
-            BorderWidth = 1,
-            Corners = CornerRadius.None,
-            ForeColor = Color.FromArgb(255, 0, 0, 0),
-            Font = new FontSpec("Segoe UI", 9f),
-            Padding = new System.Windows.Forms.Padding(4)
-        };
+            var appearance = new ElementAppearance
+            {
+                Background = Color.FromArgb(255, 128, 128, 128),
+                BorderColor = Color.FromArgb(255, 96, 96, 96),
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = Color.FromArgb(255, 0, 0, 0),
+                Font = new FontSpec("Segoe UI", 9f),
+                Padding = new System.Windows.Forms.Padding(4)
+            };
+
+            appearance.Freeze();
+            return appearance;
+        }
 
         private readonly Dictionary<string, ElementAppearance> _table =
             new Dictionary<string, ElementAppearance>(StringComparer.Ordinal);
@@ -36,6 +50,12 @@ namespace UIFramework.Core.Skinning
         {
             if (elementKey == null) throw new ArgumentNullException(nameof(elementKey));
             if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+
+            // Ab hier gehört sie dem Skin. GetAppearance reicht die Einträge
+            // direkt heraus — uneingefroren könnte ein Konsument damit den
+            // Skin app-weit umfärben. Freeze ist idempotent: eine Erscheinung
+            // darf für mehrere Element/Zustand-Paare gelten (siehe StubSkin).
+            appearance.Freeze();
 
             _table[BuildKey(elementKey, state)] = appearance;
         }

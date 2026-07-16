@@ -76,6 +76,54 @@ namespace UIFramework.Tests.Skinning
             Assert.Same(OverwritingSkin.Second, skin.GetAppearance(ElementKeys.Panel, ElementState.Normal));
         }
 
+        [Fact]
+        public void Define_freezes_what_it_stores()
+        {
+            var skin = new SparseSkin();
+
+            Assert.True(skin.GetAppearance(ElementKeys.Button, ElementState.Normal).IsFrozen);
+        }
+
+        [Fact]
+        public void Even_a_fallen_back_appearance_is_frozen()
+        {
+            var skin = new SparseSkin();
+
+            // Pressed ist nicht definiert und faellt auf Normal zurueck.
+            Assert.True(skin.GetAppearance(ElementKeys.Button, ElementState.Pressed).IsFrozen);
+        }
+
+        [Fact]
+        public void The_built_in_fallback_is_frozen_too()
+        {
+            // Sie laeuft nie durch Define — und ist die am breitesten
+            // geteilte Instanz im ganzen Framework.
+            Assert.True(SkinBase.FallbackAppearance.IsFrozen);
+        }
+
+        [Fact]
+        public void An_appearance_handed_out_cannot_corrupt_the_skin()
+        {
+            var skin = new SparseSkin();
+
+            var appearance = skin.GetAppearance(ElementKeys.Button, ElementState.Normal);
+
+            Assert.Throws<InvalidOperationException>(() => appearance.Background = Color.Red);
+        }
+
+        [Fact]
+        public void The_same_key_always_yields_the_same_instance()
+        {
+            // Der ReferenceEquals-Merker in SkinnedForm.ApplyCaptionIfChanged
+            // ruht darauf: ohne diese Zusicherung ginge bei jedem Neuzeichnen
+            // ein Schwung P/Invoke an DWM.
+            var skin = new SparseSkin();
+
+            Assert.Same(
+                skin.GetAppearance(ElementKeys.Button, ElementState.Normal),
+                skin.GetAppearance(ElementKeys.Button, ElementState.Normal));
+        }
+
         private sealed class OverwritingSkin : SkinBase
         {
             public static readonly ElementAppearance First = new ElementAppearance();

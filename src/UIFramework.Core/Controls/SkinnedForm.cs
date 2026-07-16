@@ -91,9 +91,11 @@ namespace UIFramework.Core.Controls
 
             var appearance = SkinManager.Current.GetAppearance(ElementKeys.Window, ElementState.Normal);
 
-            // Ein Skin liefert für denselben Schlüssel stets dieselbe Instanz.
-            // OnInvalidated feuert bei jedem Neuzeichnen — ohne diesen Vergleich
-            // ginge jedes Mal ein Schwung P/Invoke-Aufrufe raus.
+            // Ein Skin liefert für denselben Schlüssel stets dieselbe Instanz,
+            // und seit dem Einfrieren in SkinBase.Define ist das eine erzwungene
+            // Zusicherung statt einer Konvention: Niemand kann eine Erscheinung
+            // unter uns wegändern. OnInvalidated feuert bei jedem Neuzeichnen —
+            // ohne diesen Vergleich ginge jedes Mal ein Schwung P/Invoke raus.
             if (ReferenceEquals(appearance, _applied)) return;
             _applied = appearance;
             _captionApplyCount++;
