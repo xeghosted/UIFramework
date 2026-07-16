@@ -390,6 +390,52 @@ namespace UIFramework.Grid
             base.OnMouseWheel(e);
         }
 
+        /// <summary>Greifbreite einer Spaltentrennlinie, logisch.</summary>
+        private const int DividerGripLogical = 4;
+
+        /// <summary>
+        /// Ein Klick an dieser Stelle. Öffentlich, damit ein Test klicken kann,
+        /// ohne ein Fenster zu erzeugen — die Suite läuft kopflos.
+        /// </summary>
+        public void PerformClick(Point point, Keys modifiers)
+        {
+            var hit = HitTestAt(point);
+
+            switch (hit.Region)
+            {
+                case GridRegion.Cell:
+                    if ((modifiers & Keys.Control) == Keys.Control) Selection.Toggle(hit.RowIndex);
+                    else if ((modifiers & Keys.Shift) == Keys.Shift) Selection.ExtendTo(hit.RowIndex);
+                    else Selection.Select(hit.RowIndex);
+                    break;
+
+                case GridRegion.EmptyBelowRows:
+                    // Bewusst daneben geklickt — nicht die letzte Zeile wählen.
+                    Selection.Clear();
+                    break;
+
+                // Header und HeaderDivider fassen die Auswahl nicht an: Sortieren
+                // kommt erst in Teilprojekt 2b, Ziehen in Task 14/15.
+            }
+        }
+
+        internal GridHit HitTestAt(Point point)
+        {
+            return GridHitTest.At(point, HeaderHeight, CurrentRowViewport, CurrentColumnLayout,
+                                  DpiScale.Scale(DividerGripLogical, DeviceDpi));
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                if (CanFocus) Focus();
+                PerformClick(e.Location, ModifierKeys);
+            }
+
+            base.OnMouseDown(e);
+        }
+
         private void OnColumnsChanged(object sender, EventArgs e)
         {
             ClampOffsets();
