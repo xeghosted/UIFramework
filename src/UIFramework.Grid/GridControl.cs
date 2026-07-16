@@ -246,6 +246,20 @@ namespace UIFramework.Grid
                 if (!string.IsNullOrEmpty(text))
                     SkinPainter.DrawPaddedText(g, text, bounds, appearance, dpi, ContentAlignment.MiddleLeft);
             }
+
+            if (_reorderTarget >= 0 && _reorderingColumn >= 0 && _reorderTarget != _reorderingColumn)
+            {
+                // Die Marke sitzt an der Kante, an der die Spalte landen wird:
+                // beim Ziehen nach rechts hinter dem Ziel, nach links davor.
+                int edge = _reorderTarget > _reorderingColumn
+                    ? columns.ColumnLeft(_reorderTarget) + columns.ColumnWidth(_reorderTarget)
+                    : columns.ColumnLeft(_reorderTarget);
+
+                var marker = SkinManager.Current.GetAppearance(ElementKeys.GridHeader, ElementState.Pressed);
+                int width = DpiScale.Scale(2, dpi);
+
+                SkinPainter.DrawBackground(g, new Rectangle(edge - width / 2, 0, width, height), marker, dpi);
+            }
         }
 
         private void DrawRows(Graphics g, ColumnLayout columns, int dpi, int headerHeight, int rowHeight)
@@ -432,6 +446,59 @@ namespace UIFramework.Grid
             get { return _resizingColumn >= 0; }
         }
 
+        private int _reorderingColumn = -1;
+        private int _reorderTarget = -1;
+
+        internal int ReorderingColumn
+        {
+            get { return _reorderingColumn; }
+        }
+
+        /// <summary>Wo die Einfügemarke steht. -1, wenn gerade keine gilt.</summary>
+        internal int ReorderTargetIndex
+        {
+            get { return _reorderTarget; }
+        }
+
+        /// <summary>Greift einen Spaltenkopf zum Umordnen — nicht an der Trennlinie, dort wird gezogen.</summary>
+        public void BeginReorder(Point point)
+        {
+            var hit = HitTestAt(point);
+
+            _reorderingColumn = hit.Region == GridRegion.Header && hit.ColumnIndex >= 0
+                ? hit.ColumnIndex
+                : -1;
+            _reorderTarget = -1;
+        }
+
+        public void DragReorder(Point point)
+        {
+            if (_reorderingColumn < 0) return;
+
+            var hit = HitTestAt(point);
+
+            // Außerhalb des Kopfes gibt es kein Ziel — die Marke verschwindet und
+            // ein Loslassen bricht ab, statt irgendwohin zu fallen.
+            int target = hit.Region == GridRegion.Header || hit.Region == GridRegion.HeaderDivider
+                ? hit.ColumnIndex
+                : -1;
+
+            if (_reorderTarget == target) return;
+
+            _reorderTarget = target;
+            Invalidate();
+        }
+
+        public void EndReorder()
+        {
+            if (_reorderingColumn >= 0 && _reorderTarget >= 0 && _reorderTarget != _reorderingColumn)
+                Columns.Move(_reorderingColumn, _reorderTarget);
+
+            _reorderingColumn = -1;
+            _reorderTarget = -1;
+            Invalidate();
+        }
+
         /// <summary>Greift eine Trennlinie, falls dort eine liegt.</summary>
         public void BeginResize(Point point)
         {
@@ -526,6 +593,10 @@ namespace UIFramework.Grid
             {
                 DragResize(e.Location);
             }
+            else if (_reorderingColumn >= 0)
+            {
+                DragReorder(e.Location);
+            }
             else
             {
                 var hit = HitTestAt(e.Location);
@@ -537,7 +608,12 @@ namespace UIFramework.Grid
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left) EndResize();
+            if (e.Button == MouseButtons.Left)
+            {
+                EndResize();
+                EndReorder();
+            }
+
             base.OnMouseUp(e);
         }
 
@@ -556,7 +632,12 @@ namespace UIFramework.Grid
                 if (CanFocus) Focus();
 
                 BeginResize(e.Location);
-                if (!IsResizing) PerformClick(e.Location, ModifierKeys);
+                if (IsResizing) { base.OnMouseDown(e); return; }
+
+                BeginReorder(e.Location);
+                if (_reorderingColumn >= 0) { base.OnMouseDown(e); return; }
+
+                PerformClick(e.Location, ModifierKeys);
             }
 
             base.OnMouseDown(e);
