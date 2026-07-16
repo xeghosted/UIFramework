@@ -11,5 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\UIFramework.Core\UIFramework.Core.csproj" />
     <ProjectReference Include="..\..\src\UIFramework.Controls\UIFramework.Controls.csproj" />
+    <ProjectReference Include="..\..\src\UIFramework.Grid\UIFramework.Grid.csproj" />
   </ItemGroup>
 </Project>
