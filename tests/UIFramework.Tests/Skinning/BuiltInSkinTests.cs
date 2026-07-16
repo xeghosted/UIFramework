@@ -92,5 +92,21 @@ namespace UIFramework.Tests.Skinning
 
             Assert.True(dark.Background.GetBrightness() < light.Background.GetBrightness());
         }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void The_window_row_does_not_deny_the_border_it_will_get_anyway(ISkin skin)
+        {
+            var window = skin.GetAppearance(ElementKeys.Window, ElementState.Normal);
+
+            // BorderWidth steuert für Window nichts — die Rahmengeometrie
+            // gehört Windows (siehe ElementKeys.Window). Aber BorderColor geht
+            // sehr wohl an DWMWA_BORDER_COLOR, und Windows zeichnet daraufhin
+            // einen Rahmen. Eine 0 wäre also schlicht falsch: Wer sie im
+            // Skin-Editor (Teilprojekt 6) sieht und auf 0 setzt, um den Rahmen
+            // loszuwerden, bekommt trotzdem einen. Bedeutungslos heißt nicht
+            // beliebig, solange der Wert jemandem angezeigt wird.
+            Assert.NotEqual(0, window.BorderWidth);
+        }
     }
 }

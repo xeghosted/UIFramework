@@ -166,7 +166,11 @@ namespace UIFramework.Core.Skinning.Skins
                 // Leiste optisch in den Client-Bereich übergeht.
                 Background = Surface,
                 BorderColor = BorderSubtle,
-                BorderWidth = 0,
+                // Steuert nichts — die Rahmengeometrie gehört Windows. Aber
+                // BorderColor oben geht an DWMWA_BORDER_COLOR, und Windows
+                // zeichnet daraufhin einen 1px-Rahmen. 0 wäre eine Falschaussage
+                // gegenüber jedem, der diese Zeile liest oder anzeigt.
+                BorderWidth = 1,
                 Corners = CornerRadius.None,
                 ForeColor = TextPrimary,
                 Font = BodyFont,
