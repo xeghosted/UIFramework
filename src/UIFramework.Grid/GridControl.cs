@@ -436,6 +436,111 @@ namespace UIFramework.Grid
             base.OnMouseDown(e);
         }
 
+        /// <summary>
+        /// Ein Tastendruck. Öffentlich, damit ein Test tippen kann, ohne ein
+        /// Fenster und eine Nachrichtenschleife zu haben.
+        /// </summary>
+        public void PerformKey(Keys keyData)
+        {
+            int rowCount = RowCount;
+            if (rowCount == 0) return;
+
+            var key = keyData & Keys.KeyCode;
+            bool shift = (keyData & Keys.Shift) == Keys.Shift;
+
+            int current = Selection.CurrentRow;
+            int perPage = CurrentRowViewport.VisibleRowCount;
+            if (perPage < 1) perPage = 1;
+
+            int target;
+
+            switch (key)
+            {
+                case Keys.Down:
+                    target = current < 0 ? 0 : current + 1;
+                    break;
+                case Keys.Up:
+                    target = current < 0 ? 0 : current - 1;
+                    break;
+                case Keys.PageDown:
+                    target = current < 0 ? 0 : current + (perPage - 1);
+                    break;
+                case Keys.PageUp:
+                    target = current < 0 ? 0 : current - (perPage - 1);
+                    break;
+                case Keys.Home:
+                    target = 0;
+                    break;
+                case Keys.End:
+                    target = rowCount - 1;
+                    break;
+                default:
+                    return;
+            }
+
+            if (target < 0) target = 0;
+            if (target >= rowCount) target = rowCount - 1;
+
+            if (shift) Selection.ExtendTo(target);
+            else Selection.Select(target);
+
+            EnsureRowVisible(target);
+        }
+
+        /// <summary>
+        /// Zieht die Sicht so weit mit, dass diese Zeile ganz im Bild liegt.
+        /// Ohne das wandert die Auswahl bei jedem Pfeiltastendruck am Rand aus
+        /// dem Sichtfenster, und der Anwender sieht seinen eigenen Cursor nicht.
+        /// </summary>
+        public void EnsureRowVisible(int rowIndex)
+        {
+            if (rowIndex < 0 || rowIndex >= RowCount) return;
+
+            int rowHeight = RowHeight;
+            int viewportHeight = ClientSize.Height - HeaderHeight;
+            if (viewportHeight <= 0) return;
+
+            int top = rowIndex * rowHeight;
+            int bottom = top + rowHeight;
+
+            if (top < _verticalOffset)
+            {
+                VerticalOffset = top;
+            }
+            else if (bottom > _verticalOffset + viewportHeight)
+            {
+                // Die Zeile soll UNTEN bündig stehen, nicht oben — sonst springt
+                // die Sicht bei jedem Schritt um eine ganze Seite.
+                VerticalOffset = bottom - viewportHeight;
+            }
+        }
+
+        protected override bool IsInputKey(Keys keyData)
+        {
+            var key = keyData & Keys.KeyCode;
+
+            // Ohne das bekommt das Control die Pfeiltasten nie: WinForms deutet
+            // sie sonst als Wechsel zum nächsten Control.
+            switch (key)
+            {
+                case Keys.Up:
+                case Keys.Down:
+                case Keys.PageUp:
+                case Keys.PageDown:
+                case Keys.Home:
+                case Keys.End:
+                    return true;
+                default:
+                    return base.IsInputKey(keyData);
+            }
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e)
+        {
+            PerformKey(e.KeyData);
+            base.OnKeyDown(e);
+        }
+
         private void OnColumnsChanged(object sender, EventArgs e)
         {
             ClampOffsets();
