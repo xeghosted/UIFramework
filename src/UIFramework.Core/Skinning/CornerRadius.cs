@@ -54,6 +54,20 @@ namespace UIFramework.Core.Skinning
             return obj is CornerRadius && Equals((CornerRadius)obj);
         }
 
+        /// <summary>
+        /// Bei einem IEquatable-Wertetyp idiomatisch. Reicht auf Equals durch —
+        /// ein zweites Vergleichsverhalten wäre eine Fehlerquelle, kein Dienst.
+        /// </summary>
+        public static bool operator ==(CornerRadius left, CornerRadius right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(CornerRadius left, CornerRadius right)
+        {
+            return !left.Equals(right);
+        }
+
         public override int GetHashCode()
         {
             unchecked

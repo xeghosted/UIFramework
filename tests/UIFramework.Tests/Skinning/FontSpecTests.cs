@@ -46,5 +46,18 @@ namespace UIFramework.Tests.Skinning
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new FontSpec("Segoe UI", 0f));
         }
+
+        [Fact]
+        public void The_operators_agree_with_Equals()
+        {
+            var a = new FontSpec("Segoe UI", 9f, FontStyle.Bold);
+            var b = new FontSpec("Segoe UI", 9f, FontStyle.Bold);
+            var different = new FontSpec("Arial", 9f, FontStyle.Bold);
+
+            Assert.True(a == b);
+            Assert.False(a != b);
+            Assert.False(a == different);
+            Assert.True(a != different);
+        }
     }
 }

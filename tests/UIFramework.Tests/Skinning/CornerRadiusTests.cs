@@ -88,5 +88,18 @@ namespace UIFramework.Tests.Skinning
             Assert.True(a.Equals(b));
             Assert.Equal(a.GetHashCode(), b.GetHashCode());
         }
+
+        [Fact]
+        public void The_operators_agree_with_Equals()
+        {
+            var a = new CornerRadius(1, 2, 3, 4);
+            var b = new CornerRadius(1, 2, 3, 4);
+            var different = new CornerRadius(4, 3, 2, 1);
+
+            Assert.True(a == b);
+            Assert.False(a != b);
+            Assert.False(a == different);
+            Assert.True(a != different);
+        }
     }
 }

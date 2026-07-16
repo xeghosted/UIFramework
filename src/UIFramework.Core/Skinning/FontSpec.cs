@@ -39,6 +39,20 @@ namespace UIFramework.Core.Skinning
             return obj is FontSpec && Equals((FontSpec)obj);
         }
 
+        /// <summary>
+        /// Bei einem IEquatable-Wertetyp idiomatisch. Reicht auf Equals durch —
+        /// ein zweites Vergleichsverhalten wäre eine Fehlerquelle, kein Dienst.
+        /// </summary>
+        public static bool operator ==(FontSpec left, FontSpec right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator !=(FontSpec left, FontSpec right)
+        {
+            return !left.Equals(right);
+        }
+
         public override int GetHashCode()
         {
             unchecked
