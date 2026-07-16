@@ -3,6 +3,7 @@ using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using UIFramework.Controls;
+using UIFramework.Grid;
 using Xunit;
 
 namespace UIFramework.Tests.Architecture
@@ -39,10 +40,24 @@ namespace UIFramework.Tests.Architecture
             "System.Drawing.SystemPens"
         };
 
-        [Fact]
-        public void The_controls_assembly_contains_no_colour_of_its_own()
+        /// <summary>
+        /// Die Assemblies, in denen kein Farbwert stehen darf. UIFramework.Core
+        /// fehlt bewusst: Dort leben LightSkin und DarkSkin, die einzigen Stellen
+        /// im Framework, die Farben enthalten dürfen.
+        /// </summary>
+        public static TheoryData<string, string> GuardedAssemblies()
         {
-            string assemblyPath = typeof(SkinButton).Assembly.Location;
+            return new TheoryData<string, string>
+            {
+                { "UIFramework.Controls", typeof(SkinButton).Assembly.Location },
+                { "UIFramework.Grid", typeof(GridControl).Assembly.Location }
+            };
+        }
+
+        [Theory]
+        [MemberData(nameof(GuardedAssemblies))]
+        public void A_guarded_assembly_contains_no_colour_of_its_own(string name, string assemblyPath)
+        {
             var offenders = new List<string>();
             int typeCount;
             int methodsWithBody = 0;
@@ -85,12 +100,12 @@ namespace UIFramework.Tests.Architecture
             // läuft, würde stillschweigend "keine Verstöße" melden. Das darf nicht
             // mit einer echten, sauberen Assembly verwechselt werden.
             Assert.True(typeCount > 0,
-                "Die gescannte Assembly enthält keine Typen — der Test wäre vakuos.");
+                "Die gescannte Assembly " + name + " enthält keine Typen — der Test wäre vakuos.");
             Assert.True(methodsWithBody > 0,
-                "Die gescannte Assembly enthält keine Methoden mit Rumpf — der Test wäre vakuos.");
+                "Die gescannte Assembly " + name + " enthält keine Methoden mit Rumpf — der Test wäre vakuos.");
 
             Assert.True(offenders.Count == 0,
-                "Farben gehören ausschließlich in die Skin-Klassen. Gefunden in UIFramework.Controls:\n  " +
+                "Farben gehören ausschließlich in die Skin-Klassen. Gefunden in " + name + ":\n  " +
                 string.Join("\n  ", offenders.Distinct()));
         }
 

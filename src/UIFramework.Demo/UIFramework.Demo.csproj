@@ -6,5 +6,6 @@
   <ItemGroup>
     <ProjectReference Include="..\UIFramework.Core\UIFramework.Core.csproj" />
     <ProjectReference Include="..\UIFramework.Controls\UIFramework.Controls.csproj" />
+    <ProjectReference Include="..\UIFramework.Grid\UIFramework.Grid.csproj" />
   </ItemGroup>
 </Project>

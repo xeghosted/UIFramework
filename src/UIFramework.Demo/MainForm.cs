@@ -100,6 +100,10 @@ namespace UIFramework.Demo
             var hoverMe = new SkinButton { Text = "Zeig mir Hover", AutoSize = true };
             hoverMe.Location = new Point(16, row1Bottom + RowGap);
 
+            var openGrid = new SkinButton { Text = "Grid mit 1.000.000 Zeilen", AutoSize = true };
+            openGrid.Click += (s, e) => new GridForm().Show();
+            openGrid.Location = new Point(hoverMe.Right + Gap, row1Bottom + RowGap);
+
             var heading = new SkinLabel
             {
                 Text = "Beschriftung in 9pt Segoe UI",
@@ -123,6 +127,7 @@ namespace UIFramework.Demo
             root.Controls.Add(toggleDark);
             root.Controls.Add(disabled);
             root.Controls.Add(hoverMe);
+            root.Controls.Add(openGrid);
             root.Controls.Add(heading);
             root.Controls.Add(_dpiLabel);
             root.Controls.Add(nested);

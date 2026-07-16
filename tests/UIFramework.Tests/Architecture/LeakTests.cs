@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using UIFramework.Controls;
 using UIFramework.Core.Skinning;
+using UIFramework.Grid;
 using UIFramework.Tests.TestSupport;
 using Xunit;
 
@@ -76,6 +77,49 @@ namespace UIFramework.Tests.Architecture
 
                 Assert.Equal(1, SkinManager.RegisteredCount);
             }
+        }
+
+        [Fact]
+        public void A_grid_registers_itself_and_both_of_its_scrollbars()
+        {
+            // Erst die Erwartung festnageln, dann ihr Verschwinden pruefen —
+            // sonst bewiese der Test unten auch dann "kein Leck", wenn sich das
+            // Grid nie registriert haette.
+            using (var grid = new GridControl())
+            {
+                Assert.Equal(3, SkinManager.RegisteredCount);
+            }
+        }
+
+        [Fact]
+        public void A_thousand_disposed_grids_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var grid = new GridControl())
+                {
+                    grid.Columns.Add(new GridColumn("A", "A"));
+                    grid.DataSource = new CountingDataSource(100);
+                }
+            }
+
+            // Ohne dass WinForms die beiden Leisten mit entsorgt, stuenden hier
+            // 2000 verwaiste Registrierungen.
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
+
+        [Fact]
+        public void A_thousand_disposed_scrollbars_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var bar = new SkinScrollBar())
+                {
+                    bar.Maximum = 500;
+                }
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
         }
     }
 }
