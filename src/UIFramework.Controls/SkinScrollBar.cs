@@ -199,15 +199,14 @@ namespace UIFramework.Controls
             }
         }
 
-        private Rectangle ThumbRectangle
-        {
-            get { return ThumbRectangleFor(Geometry); }
-        }
-
         /// <summary>
-        /// Wie ThumbRectangle, aber mit einer schon vorliegenden Geometrie —
-        /// vermeidet, dieselbe Rechnung innerhalb einer Methode mehrfach
-        /// aufzubauen (siehe Aufrufer in PaintContent/OnMouseMove/OnMouseDown).
+        /// Das Rechteck des Daumens zu einer bereits vorliegenden Geometrie.
+        ///
+        /// Nimmt die Geometrie bewusst als Parameter, statt sie selbst zu holen:
+        /// Jeder Aufrufer (PaintContent, OnMouseMove, OnMouseDown) braucht sie
+        /// ohnehin noch für anderes und liest sie einmal in eine lokale Variable.
+        /// Ein parameterloser Zugriff hier hätte dieselbe Klemm- und
+        /// Daumenlängenrechnung ein zweites Mal je Methode aufgebaut.
         /// </summary>
         private Rectangle ThumbRectangleFor(ScrollBarGeometry geometry)
         {
