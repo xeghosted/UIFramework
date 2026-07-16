@@ -1,3 +1,4 @@
+using System;
 using System.Windows.Forms;
 using UIFramework.Core.Dpi;
 using UIFramework.Core.Skinning;
@@ -55,6 +56,50 @@ namespace UIFramework.Tests.Dpi
         public void Points_convert_to_pixels_via_72_not_96(float points, int dpi, float expected)
         {
             Assert.Equal(expected, DpiScale.PointsToPixels(points, dpi), 3);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-96)]
+        public void Scale_rejects_a_nonpositive_dpi(int dpi)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => DpiScale.Scale(10, dpi));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-96)]
+        public void ScaleF_rejects_a_nonpositive_dpi(int dpi)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => DpiScale.ScaleF(10f, dpi));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        [InlineData(-96)]
+        public void PointsToPixels_rejects_a_nonpositive_dpi(int dpi)
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => DpiScale.PointsToPixels(9f, dpi));
+        }
+
+        [Fact]
+        public void ScaleF_at_96_dpi_changes_nothing()
+        {
+            Assert.Equal(10f, DpiScale.ScaleF(10f, 96), 3);
+        }
+
+        [Theory]
+        [InlineData(10f, 144, 15f)]     // 150 %
+        [InlineData(10f, 192, 20f)]     // 200 %
+        [InlineData(1f, 120, 1.25f)]    // 125 % — anders als Scale(int, int) wird hier NICHT gerundet
+        public void ScaleF_scales_without_rounding(float logical, int dpi, float expected)
+        {
+            // Kein Selbstzweck trotz trivialer Implementierung: MainForm.OnLoad
+            // haengt daran (Scale(dpi / 96f)) — der Durchreicher ist tragend.
+            Assert.Equal(expected, DpiScale.ScaleF(logical, dpi), 3);
         }
     }
 }
