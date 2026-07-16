@@ -425,12 +425,138 @@ namespace UIFramework.Grid
                                   DpiScale.Scale(DividerGripLogical, DeviceDpi));
         }
 
+        private int _resizingColumn = -1;
+
+        internal bool IsResizing
+        {
+            get { return _resizingColumn >= 0; }
+        }
+
+        /// <summary>Greift eine Trennlinie, falls dort eine liegt.</summary>
+        public void BeginResize(Point point)
+        {
+            var hit = HitTestAt(point);
+            _resizingColumn = hit.Region == GridRegion.HeaderDivider ? hit.ColumnIndex : -1;
+        }
+
+        /// <summary>
+        /// Zieht die gegriffene Trennlinie hierher. Die Maus liefert physische
+        /// Pixel, GridColumn.Width ist logisch — hier treffen beide Welten
+        /// aufeinander, und nur hier wird zurückgerechnet.
+        /// </summary>
+        public void DragResize(Point point)
+        {
+            if (_resizingColumn < 0) return;
+
+            var columns = CurrentColumnLayout;
+            int physical = point.X - columns.ColumnLeft(_resizingColumn);
+            if (physical < 1) physical = 1;
+
+            // Die Umkehrung von DpiScale.Scale. Über ScaleF, nicht über eigene
+            // Arithmetik — die DPI-Rechnung gehört in die DPI-Schicht.
+            float factor = DpiScale.ScaleF(1f, DeviceDpi);
+            int logical = (int)Math.Round(physical / factor, MidpointRounding.AwayFromZero);
+
+            // Die Klemmung auf MinWidth macht GridColumn selbst.
+            Columns[_resizingColumn].Width = logical;
+        }
+
+        public void EndResize()
+        {
+            _resizingColumn = -1;
+        }
+
+        /// <summary>
+        /// Passt die Spaltenbreite an — an den Kopf und die AKTUELL SICHTBAREN
+        /// Zeilen, nicht an alle.
+        ///
+        /// Das ist keine Bequemlichkeit, sondern die Bedingung dafür, dass dieses
+        /// Grid sein Versprechen hält: Die breiteste Zelle unter einer Million zu
+        /// suchen hieße eine Million Textmessungen — ein Doppelklick, der die
+        /// Anwendung sekundenlang einfriert, ausgerechnet hier. Die Breite passt
+        /// damit zu dem, was der Anwender in diesem Moment vor sich hat; scrollt
+        /// er weiter und klickt erneut, ergibt sich eine andere. Das ist die
+        /// ehrliche Folge und kein Fehler.
+        /// </summary>
+        public void AutoFitColumn(int columnIndex)
+        {
+            if (columnIndex < 0 || columnIndex >= Columns.Count) return;
+
+            var column = Columns[columnIndex];
+            var headerAppearance = SkinManager.Current.GetAppearance(ElementKeys.GridHeader, ElementState.Normal);
+            var cellAppearance = SkinManager.Current.GetAppearance(ElementKeys.GridCell, ElementState.Normal);
+
+            int widest = 0;
+
+            using (var bitmap = new Bitmap(1, 1))
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                if (!string.IsNullOrEmpty(column.Header))
+                {
+                    var size = SkinPainter.MeasureText(g, column.Header, headerAppearance, DeviceDpi);
+                    widest = SkinPainter.InflateByPadding(size, headerAppearance, DeviceDpi).Width;
+                }
+
+                if (_dataSource != null)
+                {
+                    var rows = CurrentRowViewport;
+
+                    for (int r = 0; r < rows.VisibleRowCount; r++)
+                    {
+                        int rowIndex = rows.FirstVisibleRow + r;
+                        object value = _dataSource.GetValue(rowIndex, column.Key);
+                        if (value == null) continue;
+
+                        var size = SkinPainter.MeasureText(g, value.ToString(), cellAppearance, DeviceDpi);
+                        int width = SkinPainter.InflateByPadding(size, cellAppearance, DeviceDpi).Width;
+                        if (width > widest) widest = width;
+                    }
+                }
+            }
+
+            if (widest <= 0) return;
+
+            float factor = DpiScale.ScaleF(1f, DeviceDpi);
+            column.Width = (int)Math.Round(widest / factor, MidpointRounding.AwayFromZero);
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            if (IsResizing)
+            {
+                DragResize(e.Location);
+            }
+            else
+            {
+                var hit = HitTestAt(e.Location);
+                Cursor = hit.Region == GridRegion.HeaderDivider ? Cursors.VSplit : Cursors.Default;
+            }
+
+            base.OnMouseMove(e);
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left) EndResize();
+            base.OnMouseUp(e);
+        }
+
+        protected override void OnMouseDoubleClick(MouseEventArgs e)
+        {
+            var hit = HitTestAt(e.Location);
+            if (hit.Region == GridRegion.HeaderDivider) AutoFitColumn(hit.ColumnIndex);
+
+            base.OnMouseDoubleClick(e);
+        }
+
         protected override void OnMouseDown(MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
             {
                 if (CanFocus) Focus();
-                PerformClick(e.Location, ModifierKeys);
+
+                BeginResize(e.Location);
+                if (!IsResizing) PerformClick(e.Location, ModifierKeys);
             }
 
             base.OnMouseDown(e);
