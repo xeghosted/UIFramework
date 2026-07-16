@@ -19,8 +19,11 @@ namespace UIFramework.Core.Skinning
         /// übrigen Elementen zeichnet das Framework hier nichts: der Nicht-Client-Bereich
         /// gehört Windows, OnPaint erreicht ihn nie. Die Farben gehen über
         /// DWM-Fensterattribute an das Betriebssystem (siehe SkinnedForm).
-        /// Deshalb sind Corners, BorderWidth und Padding für dieses Element
-        /// bedeutungslos — die Geometrie der Titelleiste bestimmt Windows.
+        /// Corners, BorderWidth und Padding steuern für dieses Element nichts — die
+        /// Geometrie der Titelleiste bestimmt Windows. Bedeutungslos heißt aber nicht
+        /// beliebig: Der Skin-Editor (Teilprojekt 6) zeigt die Werte an, also dürfen
+        /// sie nicht lügen. Deshalb BorderWidth = 1 — Windows zeichnet aufgrund von
+        /// BorderColor sehr wohl einen Rahmen.
         /// </summary>
         public const string Window = "Window";
     }

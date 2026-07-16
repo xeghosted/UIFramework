@@ -9,6 +9,13 @@ namespace UIFramework.Tests.Skinning
     {
         private sealed class SparseSkin : SkinBase
         {
+            // Statisch und geteilt über alle SparseSkin-Instanzen hinweg.
+            // Eingefroren werden sie erst durch Define im Konstruktor unten —
+            // vor der ersten Konstruktion eines SparseSkin waeren sie also
+            // mutable und statisch geteilt. Ein zukünftiger Test, der
+            // ButtonNormal/ButtonHovered anfasst, ohne vorher einen SparseSkin
+            // zu konstruieren, bekäme ein instabiles, von der xUnit-Reihenfolge
+            // abhängiges Ergebnis. Heute tut das kein Test.
             public static readonly ElementAppearance ButtonNormal =
                 new ElementAppearance { Background = Color.FromArgb(255, 10, 10, 10) };
 

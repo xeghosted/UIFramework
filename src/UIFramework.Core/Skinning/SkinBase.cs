@@ -46,6 +46,11 @@ namespace UIFramework.Core.Skinning
 
         public abstract string Name { get; }
 
+        /// <summary>
+        /// Trägt eine Erscheinung für Element × Zustand in die Tabelle ein.
+        /// Übernimmt dabei den Besitz der übergebenen Instanz und friert sie
+        /// ein — der Aufrufer darf appearance danach nicht mehr verändern.
+        /// </summary>
         protected void Define(string elementKey, ElementState state, ElementAppearance appearance)
         {
             if (elementKey == null) throw new ArgumentNullException(nameof(elementKey));

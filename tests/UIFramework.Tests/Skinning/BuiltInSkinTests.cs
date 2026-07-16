@@ -102,11 +102,12 @@ namespace UIFramework.Tests.Skinning
             // BorderWidth steuert für Window nichts — die Rahmengeometrie
             // gehört Windows (siehe ElementKeys.Window). Aber BorderColor geht
             // sehr wohl an DWMWA_BORDER_COLOR, und Windows zeichnet daraufhin
-            // einen Rahmen. Eine 0 wäre also schlicht falsch: Wer sie im
-            // Skin-Editor (Teilprojekt 6) sieht und auf 0 setzt, um den Rahmen
-            // loszuwerden, bekommt trotzdem einen. Bedeutungslos heißt nicht
-            // beliebig, solange der Wert jemandem angezeigt wird.
-            Assert.NotEqual(0, window.BorderWidth);
+            // einen Rahmen exakt 1 logische Einheit breit. Der Wert muss also
+            // 1 sein, nicht bloß ungleich 0: Wer ihn im Skin-Editor
+            // (Teilprojekt 6) sieht, soll ablesen, was Windows tatsächlich
+            // zeichnet. Bedeutungslos heißt nicht beliebig, solange der Wert
+            // jemandem angezeigt wird.
+            Assert.Equal(1, window.BorderWidth);
         }
     }
 }
