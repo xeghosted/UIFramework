@@ -109,5 +109,40 @@ namespace UIFramework.Tests.Skinning
             // jemandem angezeigt wird.
             Assert.Equal(1, window.BorderWidth);
         }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void A_label_does_not_paint_a_box_onto_the_panel_it_sits_on(ISkin skin)
+        {
+            // Ein SkinLabel sitzt fast immer auf einem SkinPanel. Malt es einen
+            // anderen Ton, erscheint um jeden Text ein sichtbarer Kasten.
+            //
+            // Kein anderer Test kann das sehen, und das ist strukturell: Alle
+            // prüfen jede Erscheinung nur gegen sich selbst (Deckkraft, Schrift,
+            // Text gegen den EIGENEN Hintergrund), nie gegen die Erscheinung,
+            // auf der sie liegt. Genau in diese Lücke ist der dunkle Skin
+            // gefallen — sein Label behielt die Grundfläche, während Panel und
+            // Window auf die erhöhte wechselten.
+            //
+            // Beide Label-Zustände gegen Panel/Normal: Ein deaktiviertes Label
+            // sitzt üblicherweise auf einem normalen Panel (WinForms deaktiviert
+            // nicht das Panel, nur weil das Label deaktiviert ist).
+            //
+            // Transparent wäre ebenfalls in Ordnung — dann malt das Label gar
+            // nichts und die Panelfarbe scheint durch (SkinPainter.DrawBackground
+            // steigt bei A == 0 aus). Diese Freiheit steht hier offen, damit ein
+            // künftiger Skin sie nutzen darf.
+            var panel = skin.GetAppearance(ElementKeys.Panel, ElementState.Normal);
+
+            foreach (var state in new[] { ElementState.Normal, ElementState.Disabled })
+            {
+                var label = skin.GetAppearance(ElementKeys.Label, state);
+
+                Assert.True(
+                    label.Background.A == 0 || label.Background == panel.Background,
+                    skin.Name + ": Label/" + state + " malt " + label.Background +
+                    ", das Panel darunter aber " + panel.Background + ".");
+            }
+        }
     }
 }

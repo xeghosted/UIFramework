@@ -12,7 +12,6 @@ namespace UIFramework.Core.Skinning.Skins
     {
         private static readonly FontSpec BodyFont = new FontSpec("Segoe UI", 9f);
 
-        private static readonly Color Surface = Color.FromArgb(255, 32, 32, 36);
         private static readonly Color SurfaceRaised = Color.FromArgb(255, 45, 45, 50);
         private static readonly Color BorderSubtle = Color.FromArgb(255, 62, 62, 68);
         private static readonly Color BorderStrong = Color.FromArgb(255, 96, 96, 104);
@@ -122,9 +121,13 @@ namespace UIFramework.Core.Skinning.Skins
 
         private void DefineLabel()
         {
+            // Derselbe Ton wie Panel und Window (siehe DefinePanel/DefineWindow).
+            // Ein Label malt seine ganze Fläche; ein abweichender Ton ergäbe einen
+            // sichtbaren Kasten um jeden Text. LightSkin hält es genauso — dort
+            // teilen sich Panel, Label und Window ihren Flächenton.
             Define(ElementKeys.Label, ElementState.Normal, new ElementAppearance
             {
-                Background = Surface,
+                Background = SurfaceRaised,
                 BorderColor = Color.Transparent,
                 BorderWidth = 0,
                 Corners = CornerRadius.None,
@@ -133,9 +136,12 @@ namespace UIFramework.Core.Skinning.Skins
                 Padding = new Padding(0)
             });
 
+            // Deaktiviert wird über die Textfarbe ausgedrückt, nicht über die
+            // Fläche: Ein deaktiviertes Label sitzt weiterhin auf einem normalen
+            // Panel und darf sich davon nicht abheben.
             Define(ElementKeys.Label, ElementState.Disabled, new ElementAppearance
             {
-                Background = Surface,
+                Background = SurfaceRaised,
                 BorderColor = Color.Transparent,
                 BorderWidth = 0,
                 Corners = CornerRadius.None,
