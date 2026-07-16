@@ -99,6 +99,29 @@ namespace UIFramework.Core.Skinning
             IsFrozen = true;
         }
 
+        /// <summary>
+        /// Baut eine unabhängige, uneingefrorene Kopie mit allen acht Werten.
+        /// Existiert, weil die eingefrorene Original-Erscheinung nicht mehr
+        /// bearbeitet werden kann und Hand-Kopieren der acht Eigenschaften
+        /// eine leicht vergessene stillschweigend verlöre — ein sichtbarer
+        /// Fehler ohne Compilerwarnung. Erster Kunde: Teilprojekt 2, das aus
+        /// Panel/Normal einen abweichenden Zeilenhintergrund ableiten will.
+        /// </summary>
+        public ElementAppearance Clone()
+        {
+            return new ElementAppearance
+            {
+                Background = _background,
+                BackgroundGradientEnd = _backgroundGradientEnd,
+                BorderColor = _borderColor,
+                BorderWidth = _borderWidth,
+                Corners = _corners,
+                ForeColor = _foreColor,
+                Font = _font,
+                Padding = _padding
+            };
+        }
+
         private void ThrowIfFrozen()
         {
             if (IsFrozen)

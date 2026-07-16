@@ -19,7 +19,9 @@ namespace UIFramework.Core.Skinning
         {
             if (string.IsNullOrWhiteSpace(family))
                 throw new ArgumentException("Die Schriftfamilie darf nicht leer sein.", nameof(family));
-            if (sizeInPoints <= 0f)
+            // Negiert statt "<= 0f": NaN vergleicht mit jeder Zahl als falsch,
+            // "sizeInPoints <= 0f" liesse float.NaN also unbemerkt durch.
+            if (!(sizeInPoints > 0f))
                 throw new ArgumentOutOfRangeException(nameof(sizeInPoints), "Die Schriftgröße muss positiv sein.");
 
             Family = family;

@@ -48,6 +48,14 @@ namespace UIFramework.Tests.Skinning
         }
 
         [Fact]
+        public void NaN_size_is_rejected()
+        {
+            // sizeInPoints <= 0f ist fuer NaN falsch (jeder Vergleich mit NaN
+            // ist falsch) - der Konstruktor liesse NaN bisher unbemerkt durch.
+            Assert.Throws<ArgumentOutOfRangeException>(() => new FontSpec("Arial", float.NaN));
+        }
+
+        [Fact]
         public void The_operators_agree_with_Equals()
         {
             var a = new FontSpec("Segoe UI", 9f, FontStyle.Bold);
