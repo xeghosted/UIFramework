@@ -170,7 +170,12 @@ namespace UIFramework.Controls
         public void PerformWheel(int delta)
         {
             int steps = delta / SystemInformation.MouseWheelScrollDelta;
-            if (steps == 0) steps = delta > 0 ? 1 : -1;
+
+            // Der Fallback ist fuer kleine, aber echte Deltas gedacht (hochaufloesende
+            // Raeder), nicht fuer ein Delta von exakt 0 — sonst scrollte ein
+            // weitergereichtes Nulldelta (z. B. von GridControl.PerformWheel) um einen
+            // SmallChange, obwohl nichts passiert ist.
+            if (steps == 0 && delta != 0) steps = delta > 0 ? 1 : -1;
 
             // Rad nach oben (positives Delta) bedeutet kleinerer Wert.
             Value = _value - steps * _smallChange;
@@ -196,14 +201,19 @@ namespace UIFramework.Controls
 
         private Rectangle ThumbRectangle
         {
-            get
-            {
-                var geometry = Geometry;
+            get { return ThumbRectangleFor(Geometry); }
+        }
 
-                return _orientation == Orientation.Vertical
-                    ? new Rectangle(0, geometry.ThumbOffset, Width, geometry.ThumbLength)
-                    : new Rectangle(geometry.ThumbOffset, 0, geometry.ThumbLength, Height);
-            }
+        /// <summary>
+        /// Wie ThumbRectangle, aber mit einer schon vorliegenden Geometrie —
+        /// vermeidet, dieselbe Rechnung innerhalb einer Methode mehrfach
+        /// aufzubauen (siehe Aufrufer in PaintContent/OnMouseMove/OnMouseDown).
+        /// </summary>
+        private Rectangle ThumbRectangleFor(ScrollBarGeometry geometry)
+        {
+            return _orientation == Orientation.Vertical
+                ? new Rectangle(0, geometry.ThumbOffset, Width, geometry.ThumbLength)
+                : new Rectangle(geometry.ThumbOffset, 0, geometry.ThumbLength, Height);
         }
 
         private int AlongAxis(Point p)
@@ -213,14 +223,15 @@ namespace UIFramework.Controls
 
         protected override void PaintContent(Graphics g, ElementAppearance appearance)
         {
-            if (!Geometry.IsScrollable) return;
+            var geometry = Geometry;
+            if (!geometry.IsScrollable) return;
 
             var state = _thumbPressed
                 ? ElementState.Pressed
                 : _thumbHovered ? ElementState.Hovered : ElementState.Normal;
 
             var thumb = SkinManager.Current.GetAppearance(ElementKeys.ScrollBarThumb, state);
-            var bounds = ThumbRectangle;
+            var bounds = ThumbRectangleFor(geometry);
 
             SkinPainter.DrawBackground(g, bounds, thumb, DeviceDpi);
             SkinPainter.DrawBorder(g, bounds, thumb, DeviceDpi);
@@ -228,14 +239,15 @@ namespace UIFramework.Controls
 
         protected override void OnMouseMove(MouseEventArgs e)
         {
+            var geometry = Geometry;
+
             if (_thumbPressed)
             {
-                var geometry = Geometry;
                 Value = geometry.ValueAt(AlongAxis(e.Location) - _dragGrabOffset);
             }
             else
             {
-                bool over = ThumbRectangle.Contains(e.Location);
+                bool over = ThumbRectangleFor(geometry).Contains(e.Location);
                 if (over != _thumbHovered)
                 {
                     _thumbHovered = over;
@@ -248,22 +260,24 @@ namespace UIFramework.Controls
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left && Geometry.IsScrollable)
+            var geometry = Geometry;
+
+            if (e.Button == MouseButtons.Left && geometry.IsScrollable)
             {
-                var thumb = ThumbRectangle;
+                var thumb = ThumbRectangleFor(geometry);
 
                 if (thumb.Contains(e.Location))
                 {
                     _thumbPressed = true;
                     // Den Griffpunkt merken, sonst springt der Daumen unter dem
                     // Zeiger auf seinen Anfang, sobald man ihn anfasst.
-                    _dragGrabOffset = AlongAxis(e.Location) - Geometry.ThumbOffset;
+                    _dragGrabOffset = AlongAxis(e.Location) - geometry.ThumbOffset;
                     Invalidate();
                 }
                 else
                 {
                     // Klick in die Rinne: eine Seite weit springen.
-                    int direction = AlongAxis(e.Location) < Geometry.ThumbOffset ? -1 : 1;
+                    int direction = AlongAxis(e.Location) < geometry.ThumbOffset ? -1 : 1;
                     Value = _value + direction * _largeChange;
                 }
             }
