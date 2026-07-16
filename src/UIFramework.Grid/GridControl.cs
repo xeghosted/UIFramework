@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
+using UIFramework.Controls;
 using UIFramework.Core.Controls;
 using UIFramework.Core.Dpi;
 using UIFramework.Core.Rendering;
@@ -30,6 +31,17 @@ namespace UIFramework.Grid
         private int _verticalOffset;
         private int _horizontalOffset;
 
+        private readonly SkinScrollBar _vertical;
+        private readonly SkinScrollBar _horizontal;
+
+        /// <summary>
+        /// Schneidet die Rückkopplung durch: Leiste meldet Scroll → Grid setzt
+        /// Versatz → Grid gleicht Leiste ab → Leiste meldet Scroll. Ohne diesen
+        /// Merker eine Endlosschleife. Dasselbe Muster wie der
+        /// ReferenceEquals-Merker in SkinnedForm.ApplyCaptionIfChanged.
+        /// </summary>
+        private bool _syncing;
+
         public GridControl()
         {
             SetStyle(ControlStyles.Selectable, true);
@@ -44,6 +56,14 @@ namespace UIFramework.Grid
 
             Selection = new GridSelection();
             Selection.Changed += OnSelectionChanged;
+
+            _vertical = new SkinScrollBar { Orientation = Orientation.Vertical, Visible = false };
+            _vertical.Scroll += (s, e) => { if (!_syncing) VerticalOffset = _vertical.Value; };
+            Controls.Add(_vertical);
+
+            _horizontal = new SkinScrollBar { Orientation = Orientation.Horizontal, Visible = false };
+            _horizontal.Scroll += (s, e) => { if (!_syncing) HorizontalOffset = _horizontal.Value; };
+            Controls.Add(_horizontal);
 
             Size = new Size(400, 300);
         }
@@ -111,6 +131,7 @@ namespace UIFramework.Grid
 
                 _verticalOffset = clamped;
                 Invalidate();
+                SyncScrollBars();
             }
         }
 
@@ -125,7 +146,20 @@ namespace UIFramework.Grid
 
                 _horizontalOffset = clamped;
                 Invalidate();
+                SyncScrollBars();
             }
+        }
+
+        /// <summary>Die senkrechte Bildlaufleiste — für Tests.</summary>
+        internal SkinScrollBar VerticalScrollBar
+        {
+            get { return _vertical; }
+        }
+
+        /// <summary>Die waagerechte Bildlaufleiste — für Tests.</summary>
+        internal SkinScrollBar HorizontalScrollBar
+        {
+            get { return _horizontal; }
         }
 
         internal RowViewport CurrentRowViewport
@@ -286,6 +320,74 @@ namespace UIFramework.Grid
         {
             _verticalOffset = ClampVertical(_verticalOffset);
             _horizontalOffset = ClampHorizontal(_horizontalOffset);
+            SyncScrollBars();
+        }
+
+        /// <summary>
+        /// Bringt die Leisten auf den Stand des Grids. Setzt _syncing, damit das
+        /// dabei ausgelöste Scroll nicht zurückschlägt.
+        /// </summary>
+        private void SyncScrollBars()
+        {
+            if (_vertical == null || _horizontal == null) return;   // während des Konstruktors
+
+            _syncing = true;
+            try
+            {
+                var rows = CurrentRowViewport;
+                var columns = CurrentColumnLayout;
+
+                int barThickness = DpiScale.Scale(12, DeviceDpi);
+                int viewportHeight = ClientSize.Height - HeaderHeight;
+
+                bool needsVertical = rows.MaxScrollOffset > 0;
+                bool needsHorizontal = columns.MaxScrollOffset > 0;
+
+                // Bereich und Wert IMMER nachziehen, auch wenn die Leiste gerade
+                // verschwindet: Sonst bliebe ihr Value auf dem Stand von vor dem
+                // Schrumpfen stehen (unsichtbar, aber mit einem Wert, der zur
+                // neuen Quelle nicht mehr passt) und risse beim naechsten
+                // Sichtbarwerden einen falschen Sprung mit sich.
+                _vertical.Visible = needsVertical;
+                _vertical.Bounds = new Rectangle(
+                    ClientSize.Width - barThickness, HeaderHeight,
+                    barThickness, viewportHeight > 0 ? viewportHeight : 1);
+                _vertical.Minimum = 0;
+                _vertical.Maximum = rows.TotalHeight;
+                _vertical.LargeChange = viewportHeight > 0 ? viewportHeight : 1;
+                _vertical.SmallChange = RowHeight;
+                _vertical.Value = _verticalOffset;
+
+                _horizontal.Visible = needsHorizontal;
+                _horizontal.Bounds = new Rectangle(
+                    0, ClientSize.Height - barThickness,
+                    ClientSize.Width, barThickness);
+                _horizontal.Minimum = 0;
+                _horizontal.Maximum = columns.TotalWidth;
+                _horizontal.LargeChange = ClientSize.Width > 0 ? ClientSize.Width : 1;
+                _horizontal.SmallChange = RowHeight;
+                _horizontal.Value = _horizontalOffset;
+            }
+            finally
+            {
+                _syncing = false;
+            }
+        }
+
+        /// <summary>
+        /// Ein Mausrad-Schritt über dem Grid. Öffentlich wie bei SkinScrollBar,
+        /// damit ein Test ihn ohne echtes Rad auslösen kann.
+        /// </summary>
+        public void PerformWheel(int delta)
+        {
+            _vertical.PerformWheel(delta);
+            VerticalOffset = _vertical.Value;
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            PerformWheel(e.Delta);
+            base.OnMouseWheel(e);
         }
 
         private void OnColumnsChanged(object sender, EventArgs e)
