@@ -18,7 +18,12 @@ namespace UIFramework.Tests.Skinning
         [MemberData(nameof(AllSkins))]
         public void Every_element_and_state_is_defined_without_hitting_the_fallback(ISkin skin)
         {
-            string[] elements = { ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Focus, ElementKeys.Window };
+            string[] elements =
+            {
+                ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Focus, ElementKeys.Window,
+                ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
+                ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb
+            };
             ElementState[] states =
             {
                 ElementState.Normal, ElementState.Hovered, ElementState.Pressed,
@@ -42,7 +47,12 @@ namespace UIFramework.Tests.Skinning
         [MemberData(nameof(AllSkins))]
         public void Every_appearance_is_opaque_and_has_a_font(ISkin skin)
         {
-            string[] elements = { ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Window };
+            string[] elements =
+            {
+                ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Window,
+                ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
+                ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb
+            };
 
             foreach (var element in elements)
             {
@@ -143,6 +153,44 @@ namespace UIFramework.Tests.Skinning
                     skin.Name + ": Label/" + state + " malt " + label.Background +
                     ", das Panel darunter aber " + panel.Background + ".");
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void Grid_text_is_readable_against_its_own_background(ISkin skin)
+        {
+            // Nur "irgendein anderer ARGB-Wert" ließe zwei gleich helle, aber
+            // andersfarbige Töne durchgehen — auf einer echten Zelle kaum lesbar.
+            // Dieselbe Schwelle wie beim Titeltext (siehe den Window-Test oben).
+            foreach (var element in new[] { ElementKeys.GridHeader, ElementKeys.GridCell })
+            {
+                var appearance = skin.GetAppearance(element, ElementState.Normal);
+
+                float distance = Math.Abs(
+                    appearance.ForeColor.GetBrightness() - appearance.Background.GetBrightness());
+
+                Assert.True(distance > 0.2f,
+                    skin.Name + "/" + element + ": Text " + appearance.ForeColor +
+                    " hebt sich zu wenig von " + appearance.Background + " ab (Abstand " + distance + ").");
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void A_selected_cell_still_reads(ISkin skin)
+        {
+            // Der Selected-Zustand tauscht Fläche UND Text (siehe Spec: der
+            // Zeilenhintergrund IST der Zellhintergrund). Wer nur die Fläche
+            // umfärbt und die Textfarbe vergisst, bekommt dunkel auf dunkel —
+            // und kein anderer Test sieht es.
+            var selected = skin.GetAppearance(ElementKeys.GridCell, ElementState.Selected);
+
+            float distance = Math.Abs(
+                selected.ForeColor.GetBrightness() - selected.Background.GetBrightness());
+
+            Assert.True(distance > 0.2f,
+                skin.Name + ": ausgewählte Zelle — Text " + selected.ForeColor +
+                " auf " + selected.Background + " (Abstand " + distance + ").");
         }
     }
 }

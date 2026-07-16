@@ -34,6 +34,8 @@ namespace UIFramework.Core.Skinning.Skins
             DefineLabel();
             DefineFocus();
             DefineWindow();
+            DefineScrollBar();
+            DefineGrid();
         }
 
         private void DefineButton()
@@ -182,6 +184,157 @@ namespace UIFramework.Core.Skinning.Skins
                 ForeColor = TextPrimary,
                 Font = BodyFont,
                 Padding = new Padding(0)
+            });
+        }
+
+        private void DefineScrollBar()
+        {
+            Define(ElementKeys.ScrollBar, ElementState.Normal, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(0)
+            });
+
+            Define(ElementKeys.ScrollBar, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(0)
+            });
+
+            Define(ElementKeys.ScrollBarThumb, ElementState.Normal, new ElementAppearance
+            {
+                Background = BorderStrong,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.ScrollBarThumb, ElementState.Hovered, new ElementAppearance
+            {
+                Background = TextDisabled,
+                BorderColor = TextDisabled,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.ScrollBarThumb, ElementState.Pressed, new ElementAppearance
+            {
+                Background = Accent,
+                BorderColor = Accent,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+        }
+
+        private void DefineGrid()
+        {
+            // Die Fläche unter der letzten Zeile: dunkler als die Zellen, damit
+            // sichtbar ist, wo die Daten enden.
+            Define(ElementKeys.Grid, ElementState.Normal, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(0)
+            });
+
+            Define(ElementKeys.GridHeader, ElementState.Normal, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 5, 8, 5)
+            });
+
+            Define(ElementKeys.GridHeader, ElementState.Hovered, new ElementAppearance
+            {
+                Background = BorderSubtle,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 5, 8, 5)
+            });
+
+            Define(ElementKeys.GridHeader, ElementState.Pressed, new ElementAppearance
+            {
+                Background = BorderStrong,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 5, 8, 5)
+            });
+
+            Define(ElementKeys.GridCell, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.GridCell, ElementState.Hovered, new ElementAppearance
+            {
+                Background = BorderSubtle,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.GridCell, ElementState.Selected, new ElementAppearance
+            {
+                Background = Accent,
+                BorderColor = Accent,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.GridCell, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
             });
         }
     }

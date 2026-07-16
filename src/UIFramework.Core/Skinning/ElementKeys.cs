@@ -26,5 +26,30 @@ namespace UIFramework.Core.Skinning
         /// BorderColor sehr wohl einen Rahmen.
         /// </summary>
         public const string Window = "Window";
+
+        /// <summary>
+        /// Die Fläche und der Rahmen des Grid-Controls selbst — sichtbar nur dort,
+        /// wo keine Zellen liegen: unter der letzten Zeile und rechts der letzten
+        /// Spalte. Sie muss GridCell bewusst NICHT gleichen; ein Unterschied zeigt,
+        /// wo die Daten enden.
+        /// </summary>
+        public const string Grid = "Grid";
+
+        /// <summary>Eine Kopfzelle des Grids.</summary>
+        public const string GridHeader = "GridHeader";
+
+        /// <summary>
+        /// Eine Datenzelle. Ihr Hintergrund IST zugleich der Zeilenhintergrund —
+        /// er wird über die volle Zeilenbreite gezogen. Deshalb gibt es keinen
+        /// eigenen GridRow-Schlüssel: Fläche und Text wechseln über die Zustände
+        /// dieser einen Erscheinung gemeinsam und können nie auseinanderlaufen.
+        /// </summary>
+        public const string GridCell = "GridCell";
+
+        /// <summary>Rinne und Pfeilflächen einer Bildlaufleiste.</summary>
+        public const string ScrollBar = "ScrollBar";
+
+        /// <summary>Der Daumen einer Bildlaufleiste.</summary>
+        public const string ScrollBarThumb = "ScrollBarThumb";
     }
 }
