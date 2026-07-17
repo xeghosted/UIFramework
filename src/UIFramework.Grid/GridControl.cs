@@ -431,8 +431,11 @@ namespace UIFramework.Grid
                     Selection.Clear();
                     break;
 
-                // Header und HeaderDivider fassen die Auswahl nicht an: Sortieren
-                // kommt erst in Teilprojekt 2b, Ziehen in Task 14/15.
+                // Header und HeaderDivider fassen die Auswahl nicht an. Ziehen
+                // laeuft ueber BeginReorder/BeginResize (siehe OnMouseDown, die
+                // vor PerformClick greifen); ein Kopf-Klick ohne Zug meldet sich
+                // stattdessen als HeaderClick aus EndReorder (Teilprojekt 2b) --
+                // PerformClick erreicht GridRegion.Header darum nie ueber die Maus.
             }
         }
 
