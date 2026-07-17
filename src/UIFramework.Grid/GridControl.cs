@@ -84,11 +84,14 @@ namespace UIFramework.Grid
 
                 _dataSource = value;
 
-                // Der alte Versatz zeigt womöglich weit hinter das Ende der neuen
-                // Quelle — dann stünde das Grid vor einer leeren Fläche, ohne dass
-                // der Anwender versteht, warum. Dasselbe für die Auswahl.
+                // Zeilenindizes bedeuten nach einem Quellenwechsel nichts mehr
+                // Verlaessliches -- eine sortierte oder gefilterte Ansicht
+                // mischt Zeilen oder laesst sie aus. TrimTo waere hier die
+                // falsche Antwort: Es liesse eine noch-im-Bereich-liegende,
+                // aber jetzt FALSCHE Zeile markiert stehen. Eine neue Quelle
+                // ist ein Neuanfang fuer die Auswahl.
+                Selection.Clear();
                 ClampOffsets();
-                Selection.TrimTo(RowCount);
                 Invalidate();
             }
         }
@@ -491,12 +494,39 @@ namespace UIFramework.Grid
 
         public void EndReorder()
         {
-            if (_reorderingColumn >= 0 && _reorderTarget >= 0 && _reorderTarget != _reorderingColumn)
-                Columns.Move(_reorderingColumn, _reorderTarget);
+            if (_reorderingColumn >= 0)
+            {
+                if (_reorderTarget >= 0 && _reorderTarget != _reorderingColumn)
+                {
+                    Columns.Move(_reorderingColumn, _reorderTarget);
+                }
+                else
+                {
+                    // Kein Zug fand statt -- ein reiner Klick auf den Kopf.
+                    // Das ist der Sortierklick von Teilprojekt 2b: GridControl
+                    // kennt kein Sortieren, meldet nur, dass hier geklickt
+                    // wurde. PerformClick erreicht GridRegion.Header nie, weil
+                    // BeginReorder jedem Kopf-Klick zuvorkommt (siehe dort).
+                    OnHeaderClick(_reorderingColumn);
+                }
+            }
 
             _reorderingColumn = -1;
             _reorderTarget = -1;
             Invalidate();
+        }
+
+        /// <summary>
+        /// Ein Kopf wurde angeklickt, nicht gezogen. GridControl kennt weder
+        /// Sortieren noch SortedSource -- nur diese eine, sortierunabhaengige
+        /// Meldung. Was der Klick bedeutet, entscheidet der Aufrufer.
+        /// </summary>
+        public event EventHandler<int> HeaderClick;
+
+        protected virtual void OnHeaderClick(int columnIndex)
+        {
+            var handler = HeaderClick;
+            if (handler != null) handler(this, columnIndex);
         }
 
         /// <summary>Greift eine Trennlinie, falls dort eine liegt.</summary>
