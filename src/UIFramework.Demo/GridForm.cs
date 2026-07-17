@@ -57,11 +57,18 @@ namespace UIFramework.Demo
             RebuildDataSource(grid);
             Controls.Add(grid);
 
+            // Dock=Top statt einer festen Location: Ein absolut plaziertern
+            // Knopf ueber dem Dock=Fill-Grid verdeckte sonst dauerhaft dessen
+            // Kopfzeile und die erste Datenzeile (am echten Fenster gefunden,
+            // kein Test sieht Layout-Ueberlappung). Docking reserviert dem
+            // Knopf seinen eigenen Streifen, das Grid fuellt den Rest darunter.
+            var toolbar = new SkinPanel { Dock = DockStyle.Top, Height = 40 };
+
             var toggleFilter = new SkinButton
             {
                 Text = "Nur Berlin/Hamburg",
                 AutoSize = true,
-                Location = new Point(8, 8)
+                Location = new Point(8, 6)
             };
             toggleFilter.Click += (s, e) =>
             {
@@ -69,8 +76,8 @@ namespace UIFramework.Demo
                 toggleFilter.Text = _filterOn ? "Alle Orte zeigen" : "Nur Berlin/Hamburg";
                 RebuildDataSource(grid);
             };
-            Controls.Add(toggleFilter);
-            toggleFilter.BringToFront();
+            toolbar.Controls.Add(toggleFilter);
+            Controls.Add(toolbar);
         }
 
         private static List<Zeile> BuildRows(int count)
