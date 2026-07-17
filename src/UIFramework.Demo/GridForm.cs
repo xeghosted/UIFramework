@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using UIFramework.Controls;
 using UIFramework.Core.Controls;
 using UIFramework.Core.Dpi;
 using UIFramework.Grid;
@@ -26,6 +27,11 @@ namespace UIFramework.Demo
             public decimal Betrag { get; set; }
         }
 
+        private readonly ListDataSource<Zeile> _baseSource;
+        private GridColumn _sortedColumn;
+        private SortDirection _sortDirection = SortDirection.None;
+        private bool _filterOn;
+
         public GridForm()
         {
             AutoScaleDimensions = new SizeF(96F, 96F);
@@ -41,14 +47,30 @@ namespace UIFramework.Demo
             grid.Columns.Add(new GridColumn("Ort", "Ort") { Width = 140 });
             grid.Columns.Add(new GridColumn("Betrag", "Betrag") { Width = 100 });
 
-            var source = new ListDataSource<Zeile>(BuildRows(1000000));
-            source.Map("Nummer", z => z.Nummer);
-            source.Map("Name", z => z.Name);
-            source.Map("Ort", z => z.Ort);
-            source.Map("Betrag", z => z.Betrag.ToString("N2"));
+            _baseSource = new ListDataSource<Zeile>(BuildRows(1000000));
+            _baseSource.Map("Nummer", z => z.Nummer);
+            _baseSource.Map("Name", z => z.Name);
+            _baseSource.Map("Ort", z => z.Ort);
+            _baseSource.Map("Betrag", z => z.Betrag.ToString("N2"));
 
-            grid.DataSource = source;
+            grid.HeaderClick += OnGridHeaderClick;
+            RebuildDataSource(grid);
             Controls.Add(grid);
+
+            var toggleFilter = new SkinButton
+            {
+                Text = "Nur Berlin/Hamburg",
+                AutoSize = true,
+                Location = new Point(8, 8)
+            };
+            toggleFilter.Click += (s, e) =>
+            {
+                _filterOn = !_filterOn;
+                toggleFilter.Text = _filterOn ? "Alle Orte zeigen" : "Nur Berlin/Hamburg";
+                RebuildDataSource(grid);
+            };
+            Controls.Add(toggleFilter);
+            toggleFilter.BringToFront();
         }
 
         private static List<Zeile> BuildRows(int count)
@@ -68,6 +90,78 @@ namespace UIFramework.Demo
                 });
             }
             return rows;
+        }
+
+        private void OnGridHeaderClick(object sender, int columnIndex)
+        {
+            var grid = (GridControl)sender;
+            var column = grid.Columns[columnIndex];
+
+            if (ReferenceEquals(column, _sortedColumn))
+            {
+                // Zyklus: Aufsteigend -> Absteigend -> Keine -> Aufsteigend.
+                _sortDirection = _sortDirection == SortDirection.Ascending
+                    ? SortDirection.Descending
+                    : _sortDirection == SortDirection.Descending
+                        ? SortDirection.None
+                        : SortDirection.Ascending;
+            }
+            else
+            {
+                StripArrow(_sortedColumn);
+                _sortedColumn = column;
+                _sortDirection = SortDirection.Ascending;
+            }
+
+            if (_sortDirection == SortDirection.None)
+            {
+                // Dritter Klick auf dieselbe Spalte: Ohne dieses Strippen bliebe
+                // der Pfeil im Kopftext stehen, obwohl _sortedColumn gleich auf
+                // null faellt und RebuildDataSource den sortierten Zweig dann
+                // gar nicht mehr betritt (Bug im urspruenglichen Entwurf).
+                StripArrow(column);
+                _sortedColumn = null;
+            }
+
+            RebuildDataSource(grid);
+        }
+
+        private void RebuildDataSource(GridControl grid)
+        {
+            IGridDataSource source = _baseSource;
+
+            if (_filterOn)
+            {
+                source = new FilteredSource(source, (s, i) =>
+                {
+                    var ort = (string)s.GetValue(i, "Ort");
+                    return ort == "Berlin" || ort == "Hamburg";
+                });
+            }
+
+            if (_sortedColumn != null && _sortDirection != SortDirection.None)
+            {
+                var sorted = new SortedSource(source);
+                sorted.Sort(_sortedColumn.Key, _sortDirection);
+                source = sorted;
+
+                _sortedColumn.Header = BaseHeader(_sortedColumn) +
+                    (_sortDirection == SortDirection.Ascending ? " ▲" : " ▼");
+            }
+
+            grid.DataSource = source;
+        }
+
+        private static void StripArrow(GridColumn column)
+        {
+            if (column == null) return;
+            column.Header = BaseHeader(column);
+        }
+
+        private static string BaseHeader(GridColumn column)
+        {
+            int space = column.Header.IndexOf(' ');
+            return space < 0 ? column.Header : column.Header.Substring(0, space);
         }
 
         protected override void OnLoad(EventArgs e)
