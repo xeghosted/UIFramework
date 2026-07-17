@@ -51,7 +51,12 @@ namespace UIFramework.Demo
             _baseSource.Map("Nummer", z => z.Nummer);
             _baseSource.Map("Name", z => z.Name);
             _baseSource.Map("Ort", z => z.Ort);
-            _baseSource.Map("Betrag", z => z.Betrag.ToString("N2"));
+            // "N2" liesse "10.00" lexikografisch vor "2.50" sortieren --
+            // SortedSource vergleicht die formatierte ZEICHENKETTE, nicht die
+            // Zahl dahinter (siehe Spec 2b: kein Anzeige-/Sortierwert-Splitting
+            // in IGridDataSource.GetValue). Fest zweistellig gepolstert bleibt
+            // die Zeichenkettenordnung deckungsgleich mit der Zahlenordnung.
+            _baseSource.Map("Betrag", z => z.Betrag.ToString("00.00"));
 
             grid.HeaderClick += OnGridHeaderClick;
             RebuildDataSource(grid);
