@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
+using System.Windows.Forms;
 using UIFramework.Controls;
 using UIFramework.Core.Skinning;
 using UIFramework.Grid;
@@ -116,6 +117,50 @@ namespace UIFramework.Tests.Architecture
                 using (var bar = new SkinScrollBar())
                 {
                     bar.Maximum = 500;
+                }
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
+
+        [Fact]
+        public void A_thousand_disposed_textboxes_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var box = new SkinTextBox())
+                {
+                    box.Text = "x";
+                }
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
+
+        [Fact]
+        public void A_thousand_disposed_comboboxes_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var combo = new SkinComboBox())
+                {
+                    combo.Items.Add("a");
+                    combo.SelectedIndex = 0;
+                }
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
+
+        [Fact]
+        public void A_thousand_disposed_tabcontrols_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var tabs = new SkinTabControl())
+                using (var page = new Panel())
+                {
+                    tabs.AddTab("A", page);
                 }
             }
 
