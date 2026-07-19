@@ -22,7 +22,8 @@ namespace UIFramework.Tests.Skinning
             {
                 ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Focus, ElementKeys.Window,
                 ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
-                ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb
+                ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
+                ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab
             };
             ElementState[] states =
             {
@@ -51,7 +52,8 @@ namespace UIFramework.Tests.Skinning
             {
                 ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Window,
                 ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
-                ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb
+                ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
+                ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab
             };
 
             foreach (var element in elements)
@@ -173,6 +175,16 @@ namespace UIFramework.Tests.Skinning
                     skin.Name + "/" + element + ": Text " + appearance.ForeColor +
                     " hebt sich zu wenig von " + appearance.Background + " ab (Abstand " + distance + ").");
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void ComboBoxList_is_defined_and_opaque(ISkin skin)
+        {
+            var appearance = skin.GetAppearance(ElementKeys.ComboBoxList, ElementState.Normal);
+
+            Assert.NotSame(SkinBase.FallbackAppearance, appearance);
+            Assert.Equal(255, appearance.Background.A);
         }
 
         [Theory]

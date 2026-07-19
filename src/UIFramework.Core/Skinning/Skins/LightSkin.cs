@@ -36,6 +36,9 @@ namespace UIFramework.Core.Skinning.Skins
             DefineWindow();
             DefineScrollBar();
             DefineGrid();
+            DefineTextBox();
+            DefineComboBox();
+            DefineTab();
         }
 
         private void DefineButton()
@@ -330,6 +333,158 @@ namespace UIFramework.Core.Skinning.Skins
                 ForeColor = TextDisabled,
                 Font = BodyFont,
                 Padding = new Padding(8, 4, 8, 4)
+            });
+        }
+
+        private void DefineTextBox()
+        {
+            Define(ElementKeys.TextBox, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+
+            Define(ElementKeys.TextBox, ElementState.Hovered, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+
+            Define(ElementKeys.TextBox, ElementState.Selected, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Accent,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+
+            Define(ElementKeys.TextBox, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+        }
+
+        private void DefineComboBox()
+        {
+            Define(ElementKeys.ComboBox, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.ComboBox, ElementState.Hovered, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.ComboBox, ElementState.Selected, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Accent,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.ComboBox, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.ComboBoxList, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(0)
+            });
+        }
+
+        private void DefineTab()
+        {
+            Define(ElementKeys.Tab, ElementState.Normal, new ElementAppearance
+            {
+                Background = Surface,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(14, 8, 14, 8)
+            });
+
+            Define(ElementKeys.Tab, ElementState.Hovered, new ElementAppearance
+            {
+                Background = BorderSubtle,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(14, 8, 14, 8)
+            });
+
+            Define(ElementKeys.Tab, ElementState.Selected, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Accent,
+                BorderWidth = 2,
+                Corners = CornerRadius.None,
+                ForeColor = Accent,
+                Font = BodyFont,
+                Padding = new Padding(14, 8, 14, 8)
+            });
+
+            Define(ElementKeys.Tab, ElementState.Disabled, new ElementAppearance
+            {
+                Background = Surface,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(14, 8, 14, 8)
             });
         }
     }

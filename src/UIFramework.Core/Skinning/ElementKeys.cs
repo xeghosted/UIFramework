@@ -51,5 +51,18 @@ namespace UIFramework.Core.Skinning
 
         /// <summary>Der Daumen einer Bildlaufleiste.</summary>
         public const string ScrollBarThumb = "ScrollBarThumb";
+
+        /// <summary>Eine einzeilige Texteingabe.</summary>
+        public const string TextBox = "TextBox";
+
+        /// <summary>Der geschlossene Zustand eines Dropdowns (Feld + Pfeil).</summary>
+        public const string ComboBox = "ComboBox";
+
+        /// <summary>Der Rahmen des aufgeklappten Dropdown-Popups. Die Zeilen darin
+        /// nutzen ElementKeys.GridCell — kein eigener Zeilenschlüssel.</summary>
+        public const string ComboBoxList = "ComboBoxList";
+
+        /// <summary>Ein Reiter in der Kopfleiste von SkinTabControl.</summary>
+        public const string Tab = "Tab";
     }
 }
