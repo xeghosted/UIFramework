@@ -187,7 +187,7 @@ namespace UIFramework.Core.Rendering
 
             var font = ResourceCache.Shared.GetFont(appearance.Font, dpi);
             return TextRenderer.MeasureText(g, text, font, new Size(int.MaxValue, int.MaxValue),
-                TextFormatFlags.NoPadding | TextFormatFlags.SingleLine);
+                TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
         }
 
         /// <summary>
@@ -217,7 +217,15 @@ namespace UIFramework.Core.Rendering
 
         private static TextFormatFlags ToTextFormatFlags(ContentAlignment alignment)
         {
-            var flags = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;
+            // NoPrefix: ohne dieses Flag behandelt TextRenderer ein einzelnes
+            // "&" als Tastaturkürzel-Marker (unterstreicht das folgende
+            // Zeichen, das "&" selbst verschwindet) -- kein Control in diesem
+            // Framework nutzt Mnemonics, aber jeder Text mit einem echten "&"
+            // (z. B. ein Reitertitel "Module & Maps") würde sonst falsch
+            // gezeichnet. Live an einem Verwender-Fenster gefunden: der
+            // Reiter zeigte "Module _Maps" statt "Module & Maps".
+            var flags = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis
+                | TextFormatFlags.NoPrefix;
 
             switch (alignment)
             {

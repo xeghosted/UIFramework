@@ -156,6 +156,27 @@ namespace UIFramework.Tests.Rendering
             }
         }
 
+        [Fact]
+        public void An_ampersand_is_measured_as_a_literal_character_not_a_mnemonic_prefix()
+        {
+            var appearance = new ElementAppearance { Font = new FontSpec("Segoe UI", 9f), ForeColor = Edge };
+
+            using (var bitmap = new Bitmap(10, 10))
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                var withAmpersand = SkinPainter.MeasureText(g, "A&B", appearance, 96);
+                var withoutAmpersand = SkinPainter.MeasureText(g, "AB", appearance, 96);
+
+                // Ohne TextFormatFlags.NoPrefix behandelt TextRenderer "&" als
+                // Tastaturkürzel-Marker (verschwindet, unterstreicht das
+                // folgende Zeichen statt sich selbst zu zeigen) -- "A&B" mäße
+                // dann genauso breit wie "AB". Live an einem Verwender-Fenster
+                // gefunden: ein Reitertitel "Module & Maps" zeigte
+                // "Module _Maps" statt des echten "&"-Zeichens.
+                Assert.True(withAmpersand.Width > withoutAmpersand.Width);
+            }
+        }
+
         // --- Finding 3: Einzugs-Helfer bislang nur mit BorderWidth == 0 geprüft ---
         //
         // Jeder mitgelieferte Test-Skin (StubSkin, PanelOnlySkin, LabelOnlySkin,
