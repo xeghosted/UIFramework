@@ -35,6 +35,28 @@ namespace UIFramework.Tests.Controls
         }
 
         [Fact]
+        public void Measuring_with_an_anchor_width_not_divisible_by_seven_never_shrinks_below_it()
+        {
+            var content = July2026();
+
+            // anchorWidth 1000 liegt deutlich über jeder realistischen natürlichen
+            // Blattbreite (bei 96 dpi z. B. 161px) — Math.Max(anchorWidth, 7 ×
+            // natürliche Zellenbreite) landet also sicher beim Anker, nicht bei der
+            // natürlichen Breite. 1000 ist zugleich keine Vielfache von 7
+            // (1000 / 7 = 142 Rest 6): Ganzzahl-Abrundung der Zellenbreite (142)
+            // ergäbe 7 × 142 = 994 — sechs Pixel zu schmal, der Extremfall aus dem
+            // Review-Fund. Erst das Aufrunden der Zellenbreite (143) liefert
+            // 7 × 143 = 1001 ≥ anchorWidth.
+            Size size;
+            using (var bitmap = new Bitmap(1, 1))
+            using (var g = Graphics.FromImage(bitmap))
+                size = content.Measure(g, 96, anchorWidth: 1000);
+
+            Assert.True(size.Width >= 1000);
+            Assert.Equal(0, size.Width % 7);
+        }
+
+        [Fact]
         public void Clicking_an_in_month_day_chooses_it_and_requests_close()
         {
             var content = July2026();

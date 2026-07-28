@@ -46,7 +46,7 @@ namespace UIFramework.Controls
             _cellWidth = Math.Max(padded.Width, _rowHeight);
 
             int width = Math.Max(anchorWidth, 7 * _cellWidth);
-            _cellWidth = width / 7;            // Restpixel gleichmäßig verteilen
+            _cellWidth = (width + 6) / 7;       // aufrunden: sonst fiele die Breite unter anchorWidth
             width = 7 * _cellWidth;
 
             _size = new Size(width, 9 * _rowHeight);
