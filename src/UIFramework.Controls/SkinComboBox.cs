@@ -10,27 +10,29 @@ using UIFramework.Core.Skinning;
 namespace UIFramework.Controls
 {
     /// <summary>
-    /// Dropdown mit fester Liste. Zeichnet den geschlossenen Zustand selbst
-    /// (Text + Pfeil-Glyph), das aufgeklappte Popup ist ein eigenes, rahmenloses
-    /// Fenster (ComboPopup) statt ein zweites SkinnedControl — ein Popup, das
-    /// über die Grenzen seines Elternfensters hinausragt, kann kein Kind-Control
-    /// sein.
+    /// Dropdown mit fester Liste. Baut auf ButtonEditBase auf: keine native
+    /// Textzone (HasNativeTextCore = false — reine Auswahl, kein Freitext,
+    /// kein Caret), der Pfeil rechts ist der eine Knopf der Basis
+    /// (AddButton), das aufgeklappte Popup kommt vom Popup-Anker der Basis
+    /// (OpenPopup/ClosePopup) als ListContent (Task 5).
     ///
     /// Enthält bewusst keinen einzigen Farbwert — alles Sichtbare kommt aus dem Skin.
     /// </summary>
     [ToolboxItem(true)]
     [DefaultEvent("SelectedIndexChanged")]
-    public class SkinComboBox : SkinnedControl
+    public class SkinComboBox : ButtonEditBase
     {
         private readonly List<object> _items = new List<object>();
         private int _selectedIndex = -1;
-        private PopupHost _popup;
 
         public SkinComboBox()
         {
-            SetStyle(ControlStyles.Selectable, true);
-            TabStop = true;
-            Size = new Size(120, 24);
+            AddButton(EditorGlyph.ArrowDown, Toggle);
+        }
+
+        protected override bool HasNativeTextCore
+        {
+            get { return false; }   // reine Auswahlliste: kein Freitext, kein Caret
         }
 
         protected override string ElementKey
@@ -40,7 +42,7 @@ namespace UIFramework.Controls
 
         protected override bool IsSelected
         {
-            get { return _popup != null; }
+            get { return IsPopupOpen; }
         }
 
         [Browsable(true)]
@@ -81,46 +83,26 @@ namespace UIFramework.Controls
             if (handler != null) handler(this, e);
         }
 
-        protected override void PaintContent(Graphics g, ElementAppearance appearance)
+        protected override void PaintTextZone(Graphics g, Rectangle bounds, ElementAppearance appearance)
         {
-            var content = SkinPainter.GetContentRectangle(ClientRectangle, appearance, DeviceDpi);
-            int arrowWidth = content.Height;
-            var arrowRect = new Rectangle(content.Right - arrowWidth, content.Top, arrowWidth, content.Height);
-            var labelRect = new Rectangle(content.Left, content.Top, content.Width - arrowWidth, content.Height);
-
             string text = SelectedItem != null ? SelectedItem.ToString() : "";
             if (!string.IsNullOrEmpty(text))
-                SkinPainter.DrawText(g, text, labelRect, appearance, DeviceDpi, ContentAlignment.MiddleLeft);
-
-            DrawArrowGlyph(g, arrowRect, appearance);
-        }
-
-        private static void DrawArrowGlyph(Graphics g, Rectangle bounds, ElementAppearance appearance)
-        {
-            int size = Math.Min(bounds.Width, bounds.Height) / 3;
-            if (size < 2) return;
-
-            int cx = bounds.Left + bounds.Width / 2;
-            int cy = bounds.Top + bounds.Height / 2;
-
-            Point[] triangle =
-            {
-                new Point(cx - size, cy - size / 2),
-                new Point(cx + size, cy - size / 2),
-                new Point(cx, cy + size / 2)
-            };
-
-            g.FillPolygon(ResourceCache.Shared.GetBrush(appearance.ForeColor), triangle);
+                SkinPainter.DrawText(g, text, bounds, appearance, DeviceDpi, ContentAlignment.MiddleLeft);
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left && Enabled)
+            base.OnMouseDown(e);   // markiert ggf. einen Knopf als gedrückt
+
+            // Ein Combo klappt bei Klick IRGENDWO auf, nicht nur auf dem Pfeil.
+            // War der Klick auf dem Pfeilknopf, hat die Basis ihn bereits als
+            // gedrückt markiert und löst Toggle über AddButton beim Loslassen
+            // aus — hier nochmal togglen würde ihn doppelt schalten.
+            if (e.Button == MouseButtons.Left && Enabled && !IsButtonPressed)
             {
                 if (CanFocus) Focus();
                 Toggle();
             }
-            base.OnMouseDown(e);
         }
 
         protected override bool IsInputKey(Keys keyData)
@@ -133,14 +115,14 @@ namespace UIFramework.Controls
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Down && _popup == null)
+            if (e.KeyCode == Keys.Down && !IsPopupOpen)
             {
-                Open();
+                OpenList();
                 e.Handled = true;
             }
-            else if (e.KeyCode == Keys.Escape && _popup != null)
+            else if (e.KeyCode == Keys.Escape && IsPopupOpen)
             {
-                Close();
+                ClosePopup();
                 e.Handled = true;
             }
             else if ((e.KeyCode == Keys.Up || e.KeyCode == Keys.Down) && _items.Count > 0)
@@ -154,45 +136,16 @@ namespace UIFramework.Controls
 
         private void Toggle()
         {
-            if (_popup == null) Open(); else Close();
+            if (IsPopupOpen) ClosePopup(); else OpenList();
         }
 
-        private void Open()
+        private void OpenList()
         {
             if (_items.Count == 0) return;
 
             var list = new ListContent(_items, () => _selectedIndex);
             list.ItemChosen += index => { SelectedIndex = index; };
-
-            _popup = new PopupHost(list);
-            _popup.FormClosed += (s, e) =>
-            {
-                _popup = null;
-                Invalidate();
-            };
-
-            var screenLocation = Parent != null
-                ? Parent.PointToScreen(new Point(Left, Bottom))
-                : PointToScreen(new Point(0, Height));
-
-            _popup.ShowPopup(FindForm(), screenLocation, Width);
-            Invalidate();
-        }
-
-        private void Close()
-        {
-            if (_popup == null) return;
-
-            var popup = _popup;
-            _popup = null;
-            popup.ClosePopup();
-            Invalidate();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing) Close();
-            base.Dispose(disposing);
+            OpenPopup(list);
         }
     }
 }
