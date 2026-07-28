@@ -42,7 +42,16 @@ namespace UIFramework.Tests.Controls
             }
 
             public event EventHandler VisualChanged { add { } remove { } }
-            public event EventHandler CloseRequested { add { } remove { } }
+            public event EventHandler CloseRequested;
+
+            /// <summary>Feuert das Event echt — nur so lässt sich der
+            /// synchrone Gast-Schließpfad (PopupHost-Konstruktor:
+            /// CloseRequested += Close()) im Test auslösen.</summary>
+            public void RaiseCloseRequested()
+            {
+                var handler = CloseRequested;
+                if (handler != null) handler(this, EventArgs.Empty);
+            }
         }
 
         [Fact]
@@ -80,6 +89,27 @@ namespace UIFramework.Tests.Controls
 
             Assert.Null(ex);
             Assert.True(popup.IsDisposed);
+        }
+
+        [Fact]
+        public void Deactivating_then_the_guest_closing_synchronously_leaves_the_deferred_close_harmless()
+        {
+            var content = new StubPopupContent();
+            var popup = new PopupHost(content);
+            popup.ShowPopup(null, new Point(0, 0), 100);
+
+            popup.RaiseDeactivateForTests();
+
+            // Der Gast schließt synchron (Escape/Tagesklick/Zeilenklick-Pfad,
+            // PopupHost-Konstruktor: CloseRequested += Close()) NOCH BEVOR der
+            // wegen der Deaktivierung aufgeschobene Delegat läuft — genau der
+            // Risikofall, den der Schutz in DeferredClose() abfängt.
+            content.RaiseCloseRequested();
+            Assert.True(popup.IsDisposed);
+
+            var ex = Record.Exception(() => Application.DoEvents());
+
+            Assert.Null(ex);
         }
     }
 }
