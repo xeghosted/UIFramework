@@ -104,6 +104,10 @@ namespace UIFramework.Demo
             openGrid.Click += (s, e) => new GridForm().Show();
             openGrid.Location = new Point(hoverMe.Right + Gap, row1Bottom + RowGap);
 
+            var openEditors = new SkinButton { Text = "Editoren", AutoSize = true };
+            openEditors.Click += (s, e) => new EditorForm().Show();
+            openEditors.Location = new Point(openGrid.Right + Gap, row1Bottom + RowGap);
+
             var heading = new SkinLabel
             {
                 Text = "Beschriftung in 9pt Segoe UI",
@@ -128,6 +132,7 @@ namespace UIFramework.Demo
             root.Controls.Add(disabled);
             root.Controls.Add(hoverMe);
             root.Controls.Add(openGrid);
+            root.Controls.Add(openEditors);
             root.Controls.Add(heading);
             root.Controls.Add(_dpiLabel);
             root.Controls.Add(nested);

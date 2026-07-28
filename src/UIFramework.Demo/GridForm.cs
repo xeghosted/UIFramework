@@ -30,7 +30,7 @@ namespace UIFramework.Demo
         private readonly ListDataSource<Zeile> _baseSource;
         private GridColumn _sortedColumn;
         private SortDirection _sortDirection = SortDirection.None;
-        private bool _filterOn;
+        private string _filterText = "";
 
         public GridForm()
         {
@@ -69,19 +69,22 @@ namespace UIFramework.Demo
             // Knopf seinen eigenen Streifen, das Grid fuellt den Rest darunter.
             var toolbar = new SkinPanel { Dock = DockStyle.Top, Height = 40 };
 
-            var toggleFilter = new SkinButton
+            var filterBox = new SkinTextBox
             {
-                Text = "Nur Berlin/Hamburg",
-                AutoSize = true,
-                Location = new Point(8, 6)
+                PlaceholderText = "Ort filtern (Enter)",
+                Location = new Point(8, 6),
+                Width = 200
             };
-            toggleFilter.Click += (s, e) =>
+            // Bestätigen (Enter/Fokusverlust) statt je Tastendruck: Der Filteraufbau
+            // läuft synchron über eine Million Zeilen (dokumentierter Einmal-Preis,
+            // Spec 2b) — pro Zeichen wäre das eine fühlbare Bremse.
+            filterBox.EditConfirmed += (s, e) =>
             {
-                _filterOn = !_filterOn;
-                toggleFilter.Text = _filterOn ? "Alle Orte zeigen" : "Nur Berlin/Hamburg";
+                if (_filterText == filterBox.Text) return;
+                _filterText = filterBox.Text;
                 RebuildDataSource(grid);
             };
-            toolbar.Controls.Add(toggleFilter);
+            toolbar.Controls.Add(filterBox);
             Controls.Add(toolbar);
         }
 
@@ -142,12 +145,13 @@ namespace UIFramework.Demo
         {
             IGridDataSource source = _baseSource;
 
-            if (_filterOn)
+            if (!string.IsNullOrEmpty(_filterText))
             {
+                string needle = _filterText;
                 source = new FilteredSource(source, (s, i) =>
                 {
                     var ort = (string)s.GetValue(i, "Ort");
-                    return ort == "Berlin" || ort == "Hamburg";
+                    return ort.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
                 });
             }
 
