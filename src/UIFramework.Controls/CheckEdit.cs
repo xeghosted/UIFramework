@@ -19,7 +19,7 @@ namespace UIFramework.Controls
     /// </summary>
     [ToolboxItem(true)]
     [DefaultEvent("CheckedChanged")]
-    public class CheckEdit : SkinnedControl
+    public class CheckEdit : SkinnedControl, IGridCellEditor
     {
         private bool _checked;
 
@@ -77,6 +77,45 @@ namespace UIFramework.Controls
             if (handler != null) handler(this, e);
         }
 
+        /// <summary>Bestätigen erbeten (Enter) — Gegenstück zu ButtonEditBase,
+        /// ohne gemeinsame Basis: CheckEdit hat kein Textfeld (Spec 3a/3b).</summary>
+        public event EventHandler EditConfirmed;
+
+        /// <summary>Verwerfen erbeten (Escape).</summary>
+        public event EventHandler EditCancelled;
+
+        Control IGridCellEditor.EditorControl
+        {
+            get { return this; }
+        }
+
+        object IGridCellEditor.EditValue
+        {
+            get { return Checked; }
+            set
+            {
+                bool parsed;
+                Checked = value is bool b ? b : bool.TryParse(value == null ? "" : value.ToString(), out parsed) && parsed;
+            }
+        }
+
+        void IGridCellEditor.BeginWith(string text)
+        {
+            // Kein Textkern — Lostippen verpufft hier bewusst (Plan-Entscheidung 4).
+        }
+
+        event EventHandler IGridCellEditor.ConfirmRequested
+        {
+            add { EditConfirmed += value; }
+            remove { EditConfirmed -= value; }
+        }
+
+        event EventHandler IGridCellEditor.CancelRequested
+        {
+            add { EditCancelled += value; }
+            remove { EditCancelled -= value; }
+        }
+
         protected override void PaintContent(Graphics g, ElementAppearance appearance)
         {
             var content = SkinPainter.GetContentRectangle(ClientRectangle, appearance, DeviceDpi);
@@ -127,14 +166,14 @@ namespace UIFramework.Controls
 
         protected override bool IsInputKey(Keys keyData)
         {
-            if (keyData == Keys.Space) return true;
+            if (keyData == Keys.Space || keyData == Keys.Enter || keyData == Keys.Escape) return true;
             return base.IsInputKey(keyData);
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
         {
             PerformKey(e.KeyCode);
-            if (e.KeyCode == Keys.Space) e.Handled = true;
+            if (e.KeyCode == Keys.Space || e.KeyCode == Keys.Enter || e.KeyCode == Keys.Escape) e.Handled = true;
             base.OnKeyDown(e);
         }
 
@@ -143,6 +182,16 @@ namespace UIFramework.Controls
         internal void PerformKey(Keys key)
         {
             if (key == Keys.Space && Enabled) Checked = !Checked;
+            else if (key == Keys.Enter)
+            {
+                var handler = EditConfirmed;
+                if (handler != null) handler(this, EventArgs.Empty);
+            }
+            else if (key == Keys.Escape)
+            {
+                var handler = EditCancelled;
+                if (handler != null) handler(this, EventArgs.Empty);
+            }
         }
 
         public override Size GetPreferredSize(Size proposedSize)

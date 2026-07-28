@@ -26,7 +26,7 @@ namespace UIFramework.Controls
     ///
     /// Enthält bewusst keinen einzigen Farbwert — alles Sichtbare kommt aus dem Skin.
     /// </summary>
-    public abstract class ButtonEditBase : SkinnedControl
+    public abstract class ButtonEditBase : SkinnedControl, IGridCellEditor
     {
         [DllImport("user32.dll")]
         private static extern bool SetWindowPos(
@@ -67,7 +67,17 @@ namespace UIFramework.Controls
             _inner = new TextBox();
             _inner.BorderStyle = BorderStyle.None;
             _inner.GotFocus += (s, e) => Invalidate();
-            _inner.LostFocus += (s, e) => { RaiseEditConfirmed(); Invalidate(); };
+            _inner.LostFocus += (s, e) =>
+            {
+                // Fokusverlust an das EIGENE Popup ist kein Bestätigen: Beim Öffnen
+                // des Kalenders in einer Grid-Zelle würde der Wirt sonst sofort
+                // committen und den Editor unter dem Popup wegreißen.
+                if (!IsPopupOpen) RaiseEditConfirmed();
+                Invalidate();
+            };
+            // Tab & Co. entstehen im Kern — der Wirt (Grid) hängt aber am ÄUSSEREN
+            // Control. Weiterleiten, damit PreviewKeyDown dort ankommt.
+            _inner.PreviewKeyDown += (s, e) => OnPreviewKeyDown(e);
             _inner.MouseEnter += (s, e) => OnMouseEnter(EventArgs.Empty);
             _inner.MouseLeave += (s, e) => OnMouseLeave(EventArgs.Empty);
             _inner.TextChanged += (s, e) => OnTextChanged(EventArgs.Empty);
@@ -82,6 +92,12 @@ namespace UIFramework.Controls
                     RaiseEditConfirmed();
                     e.Handled = true;
                     e.SuppressKeyPress = true;   // kein Ding-Geräusch
+                }
+                else if (e.KeyCode == Keys.Escape)
+                {
+                    RaiseEditCancelled();
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
                 }
             };
             _inner.HandleCreated += (s, e) =>
@@ -174,10 +190,21 @@ namespace UIFramework.Controls
 
         public event EventHandler EditConfirmed;
 
-        private void RaiseEditConfirmed()
+        protected void RaiseEditConfirmed()
         {
             OnEditConfirmed();
             var handler = EditConfirmed;
+            if (handler != null) handler(this, EventArgs.Empty);
+        }
+
+        /// <summary>Verwerfen erbeten: Escape im Kern oder in der Ableitung.
+        /// Anders als EditConfirmed ändert das den Wert NICHT — was der Wirt
+        /// (Grid) daraus macht, ist seine Sache; solo verpufft es.</summary>
+        public event EventHandler EditCancelled;
+
+        protected void RaiseEditCancelled()
+        {
+            var handler = EditCancelled;
             if (handler != null) handler(this, EventArgs.Empty);
         }
 
@@ -457,6 +484,51 @@ namespace UIFramework.Controls
             base.Dispose(disposing);
         }
 
+        // ---- IGridCellEditor --------------------------------------------------
+
+        /// <summary>Wert der Zellbearbeitung — Standard: der Text des Kerns.
+        /// Ableitungen mit typisiertem Wert überschreiben beide Seiten.</summary>
+        protected virtual object GetEditValue()
+        {
+            return InnerTextBox != null ? InnerTextBox.Text : Text;
+        }
+
+        protected virtual void SetEditValue(object value)
+        {
+            string text = value == null ? "" : value.ToString();
+            if (InnerTextBox != null) InnerTextBox.Text = text; else Text = text;
+        }
+
+        Control IGridCellEditor.EditorControl
+        {
+            get { return this; }
+        }
+
+        object IGridCellEditor.EditValue
+        {
+            get { return GetEditValue(); }
+            set { SetEditValue(value); }
+        }
+
+        void IGridCellEditor.BeginWith(string text)
+        {
+            if (InnerTextBox == null) return;
+            InnerTextBox.Text = text ?? "";
+            InnerTextBox.SelectionStart = InnerTextBox.TextLength;
+        }
+
+        event EventHandler IGridCellEditor.ConfirmRequested
+        {
+            add { EditConfirmed += value; }
+            remove { EditConfirmed -= value; }
+        }
+
+        event EventHandler IGridCellEditor.CancelRequested
+        {
+            add { EditCancelled += value; }
+            remove { EditCancelled -= value; }
+        }
+
         // ---- Nur für Tests --------------------------------------------------
 
         internal Rectangle ButtonBoundsForTests(int index)
@@ -517,6 +589,11 @@ namespace UIFramework.Controls
         internal void ConfirmForTests()
         {
             RaiseEditConfirmed();
+        }
+
+        internal void CancelForTests()
+        {
+            RaiseEditCancelled();
         }
 
         internal bool FilterBlocksForTests(char c)

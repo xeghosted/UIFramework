@@ -125,6 +125,16 @@ namespace UIFramework.Controls
                 ClosePopup();
                 e.Handled = true;
             }
+            else if (e.KeyCode == Keys.Enter)
+            {
+                RaiseEditConfirmed();
+                e.Handled = true;
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                RaiseEditCancelled();
+                e.Handled = true;
+            }
             else if ((e.KeyCode == Keys.Up || e.KeyCode == Keys.Down) && _items.Count > 0)
             {
                 int next = SelectedIndex + (e.KeyCode == Keys.Down ? 1 : -1);
@@ -132,6 +142,16 @@ namespace UIFramework.Controls
                 e.Handled = true;
             }
             base.OnKeyDown(e);
+        }
+
+        protected override object GetEditValue()
+        {
+            return SelectedItem;
+        }
+
+        protected override void SetEditValue(object value)
+        {
+            SelectedItem = value;   // IndexOf: nicht gefunden => -1 = keine Auswahl
         }
 
         private void Toggle()

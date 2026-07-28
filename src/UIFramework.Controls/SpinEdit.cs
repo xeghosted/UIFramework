@@ -143,6 +143,23 @@ namespace UIFramework.Controls
                 InnerTextBox.Text, _value, _minValue, _maxValue, CultureInfo.CurrentCulture);
         }
 
+        /// <summary>Liest parse-auf-Sicht: der getippte, noch unbestätigte Text
+        /// zählt, der Control-Zustand bleibt unangetastet (Entscheidung 8 des
+        /// 3b-Plans — der Zwangs-Commit liest ohne Handshake).</summary>
+        protected override object GetEditValue()
+        {
+            return SpinBehavior.ParseOrFallback(
+                InnerTextBox.Text, _value, _minValue, _maxValue, CultureInfo.CurrentCulture);
+        }
+
+        protected override void SetEditValue(object value)
+        {
+            Value = value is decimal d
+                ? d
+                : SpinBehavior.ParseOrFallback(
+                    value == null ? "" : value.ToString(), _value, _minValue, _maxValue, CultureInfo.CurrentCulture);
+        }
+
         private static string FormatValue(decimal value)
         {
             return value.ToString(CultureInfo.CurrentCulture);

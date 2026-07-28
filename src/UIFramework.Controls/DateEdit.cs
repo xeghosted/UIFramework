@@ -57,6 +57,19 @@ namespace UIFramework.Controls
             Value = DateBehavior.ParseOrFallback(InnerTextBox.Text, _value, CultureInfo.CurrentCulture);
         }
 
+        protected override object GetEditValue()
+        {
+            DateTime? parsed = DateBehavior.ParseOrFallback(InnerTextBox.Text, _value, CultureInfo.CurrentCulture);
+            return parsed.HasValue ? (object)parsed.Value : null;
+        }
+
+        protected override void SetEditValue(object value)
+        {
+            if (value is DateTime dt) { Value = dt; return; }
+            if (value == null) { Value = null; return; }
+            Value = DateBehavior.ParseOrFallback(value.ToString(), _value, CultureInfo.CurrentCulture);
+        }
+
         private void ToggleCalendar()
         {
             // Derselbe MouseUp-Schnappschuss wie SkinComboBox.Toggle — siehe
