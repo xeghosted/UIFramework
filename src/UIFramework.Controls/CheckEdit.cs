@@ -27,11 +27,31 @@ namespace UIFramework.Controls
             SetStyle(ControlStyles.Selectable, true);
             TabStop = true;
             Size = new Size(120, 24);
+            AutoSize = true;
         }
 
         protected override string ElementKey
         {
             get { return ElementKeys.CheckBox; }
+        }
+
+        /// <summary>
+        /// Wenn gesetzt (Standard), richtet sich die Größe nach dem tatsächlichen
+        /// Textbedarf (siehe <see cref="GetPreferredSize"/>) statt der festen
+        /// 120×24-Vorgabe aus dem Konstruktor. Ohne das schneidet der Text ab,
+        /// sobald er breiter ist als die feste Größe.
+        /// </summary>
+        [Category("Layout")]
+        [DefaultValue(true)]
+        public override bool AutoSize
+        {
+            get { return base.AutoSize; }
+            set
+            {
+                if (base.AutoSize == value) return;
+                base.AutoSize = value;
+                if (value) AdjustSize();
+            }
         }
 
         [Category("Behavior")]
@@ -136,8 +156,20 @@ namespace UIFramework.Controls
 
         protected override void OnTextChanged(EventArgs e)
         {
+            if (AutoSize) AdjustSize();
             Invalidate();
             base.OnTextChanged(e);
+        }
+
+        protected override void OnDpiChangedAfterParent(EventArgs e)
+        {
+            if (AutoSize) AdjustSize();
+            base.OnDpiChangedAfterParent(e);
+        }
+
+        private void AdjustSize()
+        {
+            Size = GetPreferredSize(Size.Empty);
         }
     }
 }

@@ -67,5 +67,19 @@ namespace UIFramework.Tests.Controls
                 Assert.True(small.Width > 0 && small.Height > 0);
             }
         }
+
+        [Fact]
+        public void AutoSize_grows_the_control_when_text_is_assigned()
+        {
+            // AutoSize=true ist der Standard — die Größe passt sich dem Text an.
+            using (var check = new CheckEdit { Text = "Kurz" })
+            {
+                int smallWidth = check.Width;
+                check.Text = "Dies ist ein deutlich längerer Text";
+                int largeWidth = check.Width;
+
+                Assert.True(largeWidth > smallWidth);
+            }
+        }
     }
 }
