@@ -23,7 +23,7 @@ namespace UIFramework.Grid
     /// ist GetValue wieder eine einfache Umlenkung über die Permutation, genauso
     /// virtualisiert wie zuvor.
     /// </summary>
-    public sealed class SortedSource : IGridDataSource
+    public sealed class SortedSource : IWritableGridDataSource
     {
         private readonly IGridDataSource _inner;
         private int[] _order;
@@ -79,6 +79,27 @@ namespace UIFramework.Grid
         {
             EnsureCurrent();
             return _inner.GetValue(_order[rowIndex], columnKey);
+        }
+
+        public void SetValue(int rowIndex, string columnKey, object value)
+        {
+            EnsureCurrent();   // dieselbe Permutations-Pflege wie beim Lesen
+
+            var writable = _inner as IWritableGridDataSource;
+            if (writable == null)
+                throw new InvalidOperationException(
+                    "Die innere Quelle ist nicht schreibbar — SetValue hat kein Ziel.");
+
+            try
+            {
+                writable.SetValue(_order[rowIndex], columnKey, value);
+            }
+            catch (ArgumentException ex) when (ex.Message.Contains("MapSet"))
+            {
+                // Die innere Quelle hat keinen Setter — interpretieren als "nicht schreibbar"
+                throw new InvalidOperationException(
+                    "Die innere Quelle ist nicht schreibbar — SetValue hat kein Ziel.", ex);
+            }
         }
 
         /// <summary>

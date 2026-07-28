@@ -12,7 +12,7 @@ namespace UIFramework.Grid
     /// pruefen, einmal beim Klick, nicht pro Bild), danach ist GetValue wieder
     /// eine einfache Umlenkung.
     /// </summary>
-    public sealed class FilteredSource : IGridDataSource
+    public sealed class FilteredSource : IWritableGridDataSource
     {
         private readonly IGridDataSource _inner;
         private readonly Func<IGridDataSource, int, bool> _predicate;
@@ -63,6 +63,25 @@ namespace UIFramework.Grid
         public object GetValue(int rowIndex, string columnKey)
         {
             return _inner.GetValue(_matching[rowIndex], columnKey);
+        }
+
+        public void SetValue(int rowIndex, string columnKey, object value)
+        {
+            var writable = _inner as IWritableGridDataSource;
+            if (writable == null)
+                throw new InvalidOperationException(
+                    "Die innere Quelle ist nicht schreibbar — SetValue hat kein Ziel.");
+
+            try
+            {
+                writable.SetValue(_matching[rowIndex], columnKey, value);
+            }
+            catch (ArgumentException ex) when (ex.Message.Contains("MapSet"))
+            {
+                // Die innere Quelle hat keinen Setter — interpretieren als "nicht schreibbar"
+                throw new InvalidOperationException(
+                    "Die innere Quelle ist nicht schreibbar — SetValue hat kein Ziel.", ex);
+            }
         }
     }
 }

@@ -12,12 +12,15 @@ namespace UIFramework.Grid
     ///
     /// Hält die Liste, kopiert sie nicht: Wächst sie, wächst das Grid mit.
     /// </summary>
-    public sealed class ListDataSource<T> : IGridDataSource
+    public sealed class ListDataSource<T> : IWritableGridDataSource
     {
         private readonly IList<T> _items;
 
         private readonly Dictionary<string, Func<T, object>> _accessors =
             new Dictionary<string, Func<T, object>>(StringComparer.Ordinal);
+
+        private readonly Dictionary<string, Action<T, object>> _setters =
+            new Dictionary<string, Action<T, object>>(StringComparer.Ordinal);
 
         public ListDataSource(IList<T> items)
         {
@@ -58,6 +61,34 @@ namespace UIFramework.Grid
                     nameof(columnKey));
 
             return accessor(_items[rowIndex]);
+        }
+
+        /// <summary>
+        /// Verbindet einen Spaltenschlüssel mit dem Weg, seinen Wert zu SCHREIBEN.
+        /// Spalten ohne Setter bleiben lesbar, aber ein SetValue auf ihnen wirft ArgumentException.
+        /// </summary>
+        public void MapSet(string columnKey, Action<T, object> setter)
+        {
+            if (columnKey == null) throw new ArgumentNullException(nameof(columnKey));
+            if (setter == null) throw new ArgumentNullException(nameof(setter));
+
+            _setters[columnKey] = setter;
+        }
+
+        public void SetValue(int rowIndex, string columnKey, object value)
+        {
+            if (columnKey == null) throw new ArgumentNullException(nameof(columnKey));
+            if (rowIndex < 0 || rowIndex >= _items.Count)
+                throw new ArgumentOutOfRangeException(nameof(rowIndex),
+                    "Zeile " + rowIndex + " liegt außerhalb der Quelle (" + _items.Count + " Zeilen).");
+
+            Action<T, object> setter;
+            if (!_setters.TryGetValue(columnKey, out setter))
+                throw new ArgumentException(
+                    "Für die Spalte \"" + columnKey + "\" wurde kein Schreibzugriff eingerichtet (MapSet fehlt).",
+                    nameof(columnKey));
+
+            setter(_items[rowIndex], value);
         }
     }
 }
