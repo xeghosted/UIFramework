@@ -1,0 +1,84 @@
+using System;
+using System.ComponentModel;
+using System.Globalization;
+using UIFramework.Controls.Editing;
+using UIFramework.Core.Skinning;
+
+namespace UIFramework.Controls
+{
+    /// <summary>
+    /// Datumseingabe: Kurzdatum der aktiven Culture, leer erlaubt (null),
+    /// Unparsbares fällt still zurück. Der Kalender-Knopf öffnet den
+    /// Monatskalender im PopupHost.
+    /// </summary>
+    [ToolboxItem(true)]
+    [DefaultEvent("ValueChanged")]
+    public class DateEdit : ButtonEditBase
+    {
+        private DateTime? _value;
+
+        public DateEdit()
+        {
+            AddButton(EditorGlyph.Calendar, ToggleCalendar);
+        }
+
+        protected override string ElementKey
+        {
+            get { return ElementKeys.TextBox; }
+        }
+
+        [Category("Behavior")]
+        public DateTime? Value
+        {
+            get { return _value; }
+            set
+            {
+                DateTime? next = value.HasValue ? value.Value.Date : (DateTime?)null;
+                InnerTextBox.Text = DateBehavior.Format(next, CultureInfo.CurrentCulture);
+                if (_value == next) return;
+
+                _value = next;
+                OnValueChanged(EventArgs.Empty);
+            }
+        }
+
+        public event EventHandler ValueChanged;
+
+        protected virtual void OnValueChanged(EventArgs e)
+        {
+            var handler = ValueChanged;
+            if (handler != null) handler(this, e);
+        }
+
+        protected override void OnEditConfirmed()
+        {
+            Value = DateBehavior.ParseOrFallback(InnerTextBox.Text, _value, CultureInfo.CurrentCulture);
+
+            // Auch bei unverändertem Wert den Text normalisieren ("28.7.26" → "28.07.2026").
+            InnerTextBox.Text = DateBehavior.Format(_value, CultureInfo.CurrentCulture);
+        }
+
+        private void ToggleCalendar()
+        {
+            if (IsPopupOpen)
+            {
+                ClosePopup();
+                return;
+            }
+
+            var month = _value ?? DateTime.Today;
+            var calendar = new CalendarContent(month, _value, CultureInfo.CurrentCulture);
+            calendar.DateChosen += date => { Value = date; };
+            OpenPopup(calendar);
+        }
+
+        // ---- Nur für Tests --------------------------------------------------
+
+        internal void SetTextForTests(string text) { InnerTextBox.Text = text; }
+        internal string TextForTests() { return InnerTextBox.Text; }
+        internal string FormatForTests(DateTime? value)
+        {
+            return DateBehavior.Format(value, CultureInfo.CurrentCulture);
+        }
+    }
+}
