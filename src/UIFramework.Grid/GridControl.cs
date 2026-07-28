@@ -180,8 +180,12 @@ namespace UIFramework.Grid
         /// Die Sonden mit Sichtfenster 0 sind billig und bewusst: TotalHeight/
         /// TotalWidth hängen vom Sichtfenster nicht ab, und die Gesamtmaß-
         /// Formeln bleiben so an ihrer einen Stelle statt hier dupliziert.
-        /// Misst RowHeight/HeaderHeight je Zugriff — dasselbe dokumentierte
-        /// GDI+-Rauschen wie bei den Nachbarn (siehe offene-punkte.md).
+        /// Misst RowHeight/HeaderHeight bei jedem Zugriff neu, kein Cache-Feld
+        /// (Begründung siehe DrawTo). Anders als offene-punkte.md bisher
+        /// behauptete, betrifft das GDI+-Rauschen damit jetzt auch den
+        /// Zeichenpfad: sowohl CurrentRowViewport als auch CurrentColumnLayout
+        /// lesen hier durch — macht zusammen rund sieben statt vormals vier
+        /// Messungen je Bild.
         /// </summary>
         internal ScrollBarReservation CurrentReservation
         {
@@ -218,13 +222,20 @@ namespace UIFramework.Grid
 
             SkinPainter.DrawBackground(g, ClientRectangle, grid, dpi);
 
-            // Die beiden Höhen EINMAL je Zeichendurchgang messen und durchreichen.
-            // Jedes Lesen von RowHeight/HeaderHeight erzeugt eine Bitmap samt
-            // Graphics; ungebremst gelesen (CurrentRowViewport, DrawHeader,
-            // DrawRows) wären das ein halbes Dutzend je Bild. Kein Cache-Feld:
-            // das müsste bei Skin- UND DPI-Wechsel verworfen werden, und wer
-            // eins vergisst, hat nach dem Monitorwechsel eine falsche
-            // Zeilenhöhe, die kein Test bei 96 dpi sieht.
+            // Die beiden Höhen hier EINMAL messen und an DrawHeader/DrawRows als
+            // Parameter durchreichen, statt sie dort je erneut zu lesen. Jedes
+            // Lesen von RowHeight/HeaderHeight erzeugt eine Bitmap samt
+            // Graphics. Das erspart die Messungen NUR innerhalb der beiden
+            // Draw-Methoden — die gleich folgenden CurrentColumnLayout/
+            // CurrentRowViewport lesen über CurrentReservation seit der
+            // Bildlaufleisten-Reservierung beide zusätzlich erneut, macht
+            // zusammen rund sieben statt vormals vier Messungen je Bild (siehe
+            // offene-punkte.md). Kein Korrektheitsproblem, aber ein Kandidat
+            // dafür, die Reservierung ebenfalls hier einmal zu messen und
+            // durchzureichen, sollte es je auffallen. Kein Cache-Feld: das
+            // müsste bei Skin- UND DPI-Wechsel verworfen werden, und wer eins
+            // vergisst, hat nach dem Monitorwechsel eine falsche Zeilenhöhe,
+            // die kein Test bei 96 dpi sieht.
             int headerHeight = HeaderHeight;
             int rowHeight = RowHeight;
 
