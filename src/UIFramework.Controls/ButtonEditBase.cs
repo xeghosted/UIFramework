@@ -45,6 +45,7 @@ namespace UIFramework.Controls
         private readonly TextBox _inner;
         private int _hoverButton = -1;
         private int _pressedButton = -1;
+        private bool _popupWasOpenAtMouseDown;
         private PopupHost _popup;
 
         protected ButtonEditBase()
@@ -135,6 +136,19 @@ namespace UIFramework.Controls
         protected bool IsButtonPressed
         {
             get { return _pressedButton >= 0; }
+        }
+
+        /// <summary>Ob beim letzten MouseDown ein Popup offen war. Ein
+        /// AddButton-Callback feuert erst bei MouseUp (siehe OnMouseUp) —
+        /// dazwischen kann ein wegen Deaktivierung aufgeschobenes
+        /// PopupHost-Close (Task-12-Fix, BeginInvoke in PopupHost.OnDeactivate)
+        /// bereits durchgelaufen sein und IsPopupOpen auf false gesetzt haben.
+        /// Ein Toggle-Callback, der nur IsPopupOpen bei Up liest, würde dann
+        /// fälschlich neu öffnen statt zu bleiben (Task-12-Befund F1,
+        /// Fix-Runde 2) — er muss stattdessen auch diesen Schnappschuss prüfen.</summary>
+        protected bool PopupWasOpenAtMouseDown
+        {
+            get { return _popupWasOpenAtMouseDown; }
         }
 
         /// <summary>Tastenfilter der Ableitung; Steuerzeichen passieren immer
@@ -299,6 +313,9 @@ namespace UIFramework.Controls
         {
             if (e.Button == MouseButtons.Left && Enabled)
             {
+                // Schnappschuss VOR dem Hit-Test — siehe PopupWasOpenAtMouseDown.
+                _popupWasOpenAtMouseDown = IsPopupOpen;
+
                 int hit = HitButton(e.Location);
                 if (hit >= 0)
                 {
@@ -319,6 +336,9 @@ namespace UIFramework.Controls
 
                 if (HitButton(e.Location) == pressed)
                     _buttons[pressed].Click();
+
+                // Erst NACH dem Callback zurücksetzen — Toggle() liest ihn darin.
+                _popupWasOpenAtMouseDown = false;
             }
             base.OnMouseUp(e);
         }
@@ -435,6 +455,43 @@ namespace UIFramework.Controls
         internal void ClickButtonForTests(int index)
         {
             _buttons[index].Click();
+        }
+
+        /// <summary>Simuliert MouseDown auf der Mitte des Knopfs — anders als
+        /// ClickButtonForTests durchläuft das echte OnMouseDown, markiert also
+        /// den Knopf als gedrückt und erfasst PopupWasOpenAtMouseDown.</summary>
+        internal void PressButtonForTests(int index)
+        {
+            var center = CenterOf(ButtonBoundsForTests(index));
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, center.X, center.Y, 0));
+        }
+
+        /// <summary>Simuliert MouseUp auf der Mitte des Knopfs — löst damit
+        /// (bei weiterhin getroffenem Knopf) denselben Click-Callback wie ein
+        /// echter Loslasser aus.</summary>
+        internal void ReleaseButtonForTests(int index)
+        {
+            var center = CenterOf(ButtonBoundsForTests(index));
+            OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, center.X, center.Y, 0));
+        }
+
+        private static Point CenterOf(Rectangle bounds)
+        {
+            return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
+        }
+
+        /// <summary>Löst die Deaktivierung des gerade offenen Popups aus (falls
+        /// eines offen ist) — für Tests, die den Task-12-Zeitablauf zwischen
+        /// MouseDown und MouseUp nachstellen, ohne ein echtes zweites Fenster
+        /// zu aktivieren.</summary>
+        internal void RaisePopupDeactivateForTests()
+        {
+            if (_popup != null) _popup.RaiseDeactivateForTests();
+        }
+
+        internal bool IsPopupOpenForTests
+        {
+            get { return IsPopupOpen; }
         }
 
         internal void ConfirmForTests()

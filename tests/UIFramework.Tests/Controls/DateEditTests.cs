@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Forms;
 using UIFramework.Controls;
 using UIFramework.Core.Skinning;
 using UIFramework.Tests.TestSupport;
@@ -55,6 +56,26 @@ namespace UIFramework.Tests.Controls
 
                 Assert.Equal(last, edit.Value);
                 Assert.Equal(edit.FormatForTests(last), edit.TextForTests());
+            }
+        }
+
+        [Fact]
+        public void Clicking_the_calendar_button_while_the_popup_closes_underneath_does_not_reopen_it()
+        {
+            using (var edit = new DateEdit())
+            {
+                edit.CreateControl();
+
+                edit.ClickButtonForTests(0);                   // öffnet den Kalender
+                Assert.True(edit.IsPopupOpenForTests);
+
+                edit.PressButtonForTests(0);                   // MouseDown auf dem Kalender-Knopf
+                edit.RaisePopupDeactivateForTests();           // Popup verliert die Aktivierung ...
+                Application.DoEvents();                        // ... aufgeschobenes Close (Task-12) läuft durch
+
+                edit.ReleaseButtonForTests(0);                 // MouseUp: ToggleCalendar() feuert
+
+                Assert.False(edit.IsPopupOpenForTests);        // darf NICHT wieder offen sein
             }
         }
     }

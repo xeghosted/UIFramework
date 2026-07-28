@@ -136,7 +136,14 @@ namespace UIFramework.Controls
 
         private void Toggle()
         {
-            if (IsPopupOpen) ClosePopup(); else OpenList();
+            // Der Pfeilknopf togglet erst bei MouseUp (AddButton-Callback) —
+            // dazwischen kann ein wegen Deaktivierung aufgeschobenes Close
+            // (Task-12-Fix) das Popup schon geschlossen haben. IsPopupOpen
+            // allein läse dann "zu" und öffnete hier fälschlich neu; darum
+            // zählt auch der Schnappschuss vom MouseDown (Task-12-Befund F1,
+            // Fix-Runde 2). ClosePopup() bleibt in beiden Fällen ein no-op,
+            // falls das Popup schon zu ist.
+            if (IsPopupOpen || PopupWasOpenAtMouseDown) ClosePopup(); else OpenList();
         }
 
         private void OpenList()

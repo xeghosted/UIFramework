@@ -122,6 +122,28 @@ namespace UIFramework.Tests.Controls
             }
         }
 
+        [Fact]
+        public void Clicking_the_arrow_while_the_popup_closes_underneath_does_not_reopen_it()
+        {
+            using (var combo = new SkinComboBox())
+            {
+                combo.Items.Add("alpha");
+                combo.Size = new Size(120, 24);
+                combo.CreateControl();
+
+                combo.ClickButtonForTests(0);                  // öffnet
+                Assert.True(combo.IsPopupOpenForTests);
+
+                combo.PressButtonForTests(0);                  // MouseDown auf dem Pfeil
+                combo.RaisePopupDeactivateForTests();          // Popup verliert die Aktivierung ...
+                Application.DoEvents();                        // ... aufgeschobenes Close (Task-12) läuft durch
+
+                combo.ReleaseButtonForTests(0);                // MouseUp: Toggle() feuert
+
+                Assert.False(combo.IsPopupOpenForTests);       // darf NICHT wieder offen sein
+            }
+        }
+
         private sealed class StubSkinWithComboBox : SkinBase
         {
             private readonly Color _background;

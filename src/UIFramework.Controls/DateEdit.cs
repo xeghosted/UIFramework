@@ -60,7 +60,9 @@ namespace UIFramework.Controls
 
         private void ToggleCalendar()
         {
-            if (IsPopupOpen)
+            // Derselbe MouseUp-Schnappschuss wie SkinComboBox.Toggle — siehe
+            // dortigen Kommentar (Task-12-Befund F1, Fix-Runde 2).
+            if (IsPopupOpen || PopupWasOpenAtMouseDown)
             {
                 ClosePopup();
                 return;
