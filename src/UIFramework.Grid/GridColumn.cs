@@ -1,4 +1,5 @@
 using System;
+using UIFramework.Controls;
 
 namespace UIFramework.Grid
 {
@@ -80,6 +81,22 @@ namespace UIFramework.Grid
                 Width = _width;   // klemmt neu und meldet, falls es wirklich schiebt
             }
         }
+
+        /// <summary>
+        /// Sperrt die Spalte für die Zellbearbeitung, auch wenn Quelle und Fabrik
+        /// vorhanden sind. Kein Changed-Ereignis: ReadOnly ändert nichts Sichtbares
+        /// am Blatt, nur das Verhalten beim Aktivieren.
+        /// </summary>
+        public bool ReadOnly { get; set; }
+
+        /// <summary>
+        /// Erzeugt den Zelleditor dieser Spalte — eine Fabrik statt einer
+        /// Aufzählung, weil die App den Editor KONFIGURIERT zurückgeben muss
+        /// (SpinEdit mit Min/Max, Combo mit Items; Spec 3b). Null = Spalte nicht
+        /// bearbeitbar. Das Grid ruft sie je Aktivierung und entsorgt das Control
+        /// beim Schließen.
+        /// </summary>
+        public Func<IGridCellEditor> EditorFactory { get; set; }
 
         private void OnChanged()
         {

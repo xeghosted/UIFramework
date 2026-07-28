@@ -42,6 +42,11 @@ namespace UIFramework.Grid
         /// </summary>
         private bool _syncing;
 
+        private IGridCellEditor _editor;
+        private int _editRow = -1;
+        private int _editColumn = -1;
+        private bool _closingEditor;
+
         public GridControl()
         {
             SetStyle(ControlStyles.Selectable, true);
@@ -81,6 +86,10 @@ namespace UIFramework.Grid
             set
             {
                 if (ReferenceEquals(_dataSource, value)) return;
+
+                // Abbruch OHNE Schreiben (Spec 3b): Die alte Quelle ist Geschichte —
+                // in sie zu schreiben wäre genauso falsch wie in die neue.
+                CancelEdit();
 
                 _dataSource = value;
 
@@ -466,6 +475,169 @@ namespace UIFramework.Grid
                 // stattdessen als HeaderClick aus EndReorder (Teilprojekt 2b) --
                 // PerformClick erreicht GridRegion.Header darum nie ueber die Maus.
             }
+        }
+
+        /// <summary>Läuft gerade eine Zellbearbeitung? Pro Grid höchstens eine.</summary>
+        [Browsable(false)]
+        public bool IsEditing
+        {
+            get { return _editor != null; }
+        }
+
+        /// <summary>
+        /// Bearbeitbar ist eine Zelle genau dann, wenn: Quelle schreibbar UND
+        /// Spalte nicht ReadOnly UND Spalte hat eine Editor-Fabrik (Spec 3b).
+        /// Sonst verhält sich das Grid exakt wie vor 3b.
+        /// </summary>
+        internal bool CanEditCell(int rowIndex, int columnIndex)
+        {
+            if (!Enabled) return false;
+            if (rowIndex < 0 || rowIndex >= RowCount) return false;
+            if (columnIndex < 0 || columnIndex >= Columns.Count) return false;
+            if (!(_dataSource is IWritableGridDataSource)) return false;
+
+            var column = Columns[columnIndex];
+            return !column.ReadOnly && column.EditorFactory != null;
+        }
+
+        /// <summary>Das Zellrechteck in Client-Koordinaten — dieselben Quellen wie
+        /// das Zeichnen (ColumnLayout/RowViewport), damit Editor und Zelle nie
+        /// auseinanderlaufen.</summary>
+        internal Rectangle CellBounds(int rowIndex, int columnIndex)
+        {
+            var columns = CurrentColumnLayout;
+            var rows = CurrentRowViewport;
+
+            return new Rectangle(
+                columns.ColumnLeft(columnIndex),
+                HeaderHeight + rows.RowTop(rowIndex),
+                columns.ColumnWidth(columnIndex),
+                RowHeight);
+        }
+
+        public void BeginEdit(int rowIndex, int columnIndex)
+        {
+            BeginEdit(rowIndex, columnIndex, null);
+        }
+
+        /// <summary>
+        /// Öffnet den Zelleditor über der Zelle — DataGridView-Mechanik: ein
+        /// echtes Kind-Control exakt auf dem Zellrechteck, kein In-die-Zelle-Malen.
+        /// seedText ist das Lostippen-Zeichen (ersetzt den geladenen Wert).
+        /// </summary>
+        public void BeginEdit(int rowIndex, int columnIndex, string seedText)
+        {
+            if (!CanEditCell(rowIndex, columnIndex)) return;
+
+            CommitEdit();                 // höchstens ein Editor je Grid
+            EnsureRowVisible(rowIndex);   // erst scrollen, DANN platzieren
+
+            var editor = Columns[columnIndex].EditorFactory();
+            if (editor == null || editor.EditorControl == null) return;
+
+            _editor = editor;
+            _editRow = rowIndex;
+            _editColumn = columnIndex;
+
+            editor.EditValue = _dataSource.GetValue(rowIndex, Columns[columnIndex].Key);
+            if (seedText != null) editor.BeginWith(seedText);
+
+            var control = editor.EditorControl;
+            control.Bounds = CellBounds(rowIndex, columnIndex);
+
+            editor.ConfirmRequested += OnEditorConfirmRequested;
+            editor.CancelRequested += OnEditorCancelRequested;
+            control.PreviewKeyDown += OnEditorPreviewKeyDown;
+
+            Controls.Add(control);
+            control.BringToFront();       // über den Leisten-Geschwistern
+
+            // Kern-Editoren sind selbst nicht fokussierbar — dort übernimmt das
+            // erste fokussierbare Kind (der native Kern) per SelectNextControl.
+            if (!control.Focus()) control.SelectNextControl(null, true, true, true, false);
+        }
+
+        public void CommitEdit()
+        {
+            if (_editor == null || _closingEditor) return;
+
+            object value = _editor.EditValue;
+
+            // Schreiben VOR dem Schließen: Wirft die App-Quelle, schlägt die
+            // Ausnahme durch und der Editor bleibt ehrlich offen (Spec 3b,
+            // Fehlerbehandlung) — nichts wird verschluckt oder halb geschlossen.
+            ((IWritableGridDataSource)_dataSource).SetValue(_editRow, Columns[_editColumn].Key, value);
+
+            CloseEditor();
+        }
+
+        public void CancelEdit()
+        {
+            if (_editor == null || _closingEditor) return;
+            CloseEditor();
+        }
+
+        private void CloseEditor()
+        {
+            _closingEditor = true;
+            try
+            {
+                var editor = _editor;
+                var control = editor.EditorControl;
+
+                _editor = null;
+                _editRow = -1;
+                _editColumn = -1;
+
+                // Erst abhängen, dann entfernen: Das Entfernen löst Fokuswechsel
+                // aus, deren LostFocus-Confirm sonst reentrant zurückschlüge.
+                editor.ConfirmRequested -= OnEditorConfirmRequested;
+                editor.CancelRequested -= OnEditorCancelRequested;
+                control.PreviewKeyDown -= OnEditorPreviewKeyDown;
+
+                Controls.Remove(control);
+                control.Dispose();
+
+                Invalidate();
+                if (CanFocus) Focus();
+            }
+            finally
+            {
+                _closingEditor = false;
+            }
+        }
+
+        private void OnEditorConfirmRequested(object sender, EventArgs e)
+        {
+            CommitEdit();
+        }
+
+        private void OnEditorCancelRequested(object sender, EventArgs e)
+        {
+            CancelEdit();
+        }
+
+        private void OnEditorPreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            // Tab-Wanderung kommt in Task 6 — der Handler existiert ab hier, damit
+            // An-/Abmelden symmetrisch bleiben.
+        }
+
+        // ---- Nur für Tests --------------------------------------------------
+
+        internal IGridCellEditor CurrentEditorForTests
+        {
+            get { return _editor; }
+        }
+
+        internal int EditRowForTests
+        {
+            get { return _editRow; }
+        }
+
+        internal int EditColumnForTests
+        {
+            get { return _editColumn; }
         }
 
         internal GridHit HitTestAt(Point point)
