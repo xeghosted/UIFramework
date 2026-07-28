@@ -136,5 +136,28 @@ namespace UIFramework.Tests.Controls
                 Assert.Equal(55m, lastValue);
             }
         }
+
+        [Fact]
+        public void A_non_positive_increment_throws()
+        {
+            using (var spin = new SpinEdit())
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() => spin.Increment = 0);
+                Assert.Throws<ArgumentOutOfRangeException>(() => spin.Increment = -1);
+            }
+        }
+
+        [Fact]
+        public void Crossing_the_bounds_throws_and_leaves_them_unchanged()
+        {
+            using (var spin = new SpinEdit { MinValue = 10, MaxValue = 20 })
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() => spin.MinValue = 21);
+                Assert.Throws<ArgumentOutOfRangeException>(() => spin.MaxValue = 9);
+
+                Assert.Equal(10, spin.MinValue);
+                Assert.Equal(20, spin.MaxValue);
+            }
+        }
     }
 }

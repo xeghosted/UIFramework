@@ -56,7 +56,16 @@ namespace UIFramework.Controls
         public decimal MinValue
         {
             get { return _minValue; }
-            set { _minValue = value; Value = _value; }
+            set
+            {
+                // Wurf statt stillem Nachziehen: Eine App, die Min über Max setzt,
+                // hat einen Fehler — den zu verstecken hieße, ihn zu verewigen.
+                if (value > _maxValue)
+                    throw new ArgumentOutOfRangeException(nameof(value),
+                        "MinValue (" + value + ") darf MaxValue (" + _maxValue + ") nicht übersteigen.");
+                _minValue = value;
+                Value = _value;
+            }
         }
 
         [Category("Behavior")]
@@ -64,7 +73,14 @@ namespace UIFramework.Controls
         public decimal MaxValue
         {
             get { return _maxValue; }
-            set { _maxValue = value; Value = _value; }
+            set
+            {
+                if (value < _minValue)
+                    throw new ArgumentOutOfRangeException(nameof(value),
+                        "MaxValue (" + value + ") darf MinValue (" + _minValue + ") nicht unterschreiten.");
+                _maxValue = value;
+                Value = _value;
+            }
         }
 
         [Category("Behavior")]
@@ -72,7 +88,13 @@ namespace UIFramework.Controls
         public decimal Increment
         {
             get { return _increment; }
-            set { _increment = value; }
+            set
+            {
+                if (value <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(value),
+                        "Increment muss positiv sein; " + value + " würde die Knöpfe lahmlegen oder umkehren.");
+                _increment = value;
+            }
         }
 
         public event EventHandler ValueChanged;
