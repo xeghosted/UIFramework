@@ -140,12 +140,15 @@ namespace UIFramework.Controls
 
         /// <summary>Ob beim letzten MouseDown ein Popup offen war. Ein
         /// AddButton-Callback feuert erst bei MouseUp (siehe OnMouseUp) —
-        /// dazwischen kann ein wegen Deaktivierung aufgeschobenes
-        /// PopupHost-Close (Task-12-Fix, BeginInvoke in PopupHost.OnDeactivate)
-        /// bereits durchgelaufen sein und IsPopupOpen auf false gesetzt haben.
-        /// Ein Toggle-Callback, der nur IsPopupOpen bei Up liest, würde dann
-        /// fälschlich neu öffnen statt zu bleiben (Task-12-Befund F1,
-        /// Fix-Runde 2) — er muss stattdessen auch diesen Schnappschuss prüfen.</summary>
+        /// dazwischen kann ein wegen Deaktivierung aufgeschobenes, per
+        /// BeginInvoke verzögertes PopupHost-Close (siehe
+        /// PopupHost.OnDeactivate) bereits durchgelaufen sein und IsPopupOpen
+        /// auf false gesetzt haben. Ein Toggle-Callback, der nur IsPopupOpen
+        /// bei Up liest, würde dann fälschlich neu öffnen statt zu bleiben —
+        /// er muss stattdessen auch diesen Schnappschuss prüfen (siehe
+        /// SkinComboBox.Toggle, DateEdit.ToggleCalendar). Gesetzt in
+        /// OnMouseDown, zurückgesetzt in OnMouseUp und OnMouseLeave — ein dort
+        /// abgebrochener Klick darf keinen stale Schnappschuss hinterlassen.</summary>
         protected bool PopupWasOpenAtMouseDown
         {
             get { return _popupWasOpenAtMouseDown; }
@@ -304,6 +307,13 @@ namespace UIFramework.Controls
             {
                 _hoverButton = -1;
                 _pressedButton = -1;
+
+                // Ein hier abgebrochener Klick (Down auf dem Knopf, dann raus
+                // gezogen) darf keinen Schnappschuss stehen lassen — sonst
+                // verbiegt er den NÄCHSTEN, ganz unabhängigen Klick auf
+                // denselben Knopf (siehe OnMouseUp).
+                _popupWasOpenAtMouseDown = false;
+
                 Invalidate();
             }
             base.OnMouseLeave(e);
@@ -336,10 +346,13 @@ namespace UIFramework.Controls
 
                 if (HitButton(e.Location) == pressed)
                     _buttons[pressed].Click();
-
-                // Erst NACH dem Callback zurücksetzen — Toggle() liest ihn darin.
-                _popupWasOpenAtMouseDown = false;
             }
+
+            // Unbedingt zurücksetzen, auch wenn kein Knopf mehr gedrückt war
+            // (z. B. Down auf dem Knopf, dann OnMouseLeave, dann Up
+            // außerhalb) — sonst bliebe der Schnappschuss stale stehen und
+            // verböge den NÄCHSTEN, unabhängigen Klick auf denselben Knopf.
+            _popupWasOpenAtMouseDown = false;
             base.OnMouseUp(e);
         }
 
@@ -480,10 +493,17 @@ namespace UIFramework.Controls
             return new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
         }
 
+        /// <summary>Simuliert die Maus, die den Editor verlässt, während ein
+        /// Knopf noch gedrückt ist (Down auf dem Knopf, dann rausgezogen).</summary>
+        internal void LeaveForTests()
+        {
+            OnMouseLeave(EventArgs.Empty);
+        }
+
         /// <summary>Löst die Deaktivierung des gerade offenen Popups aus (falls
-        /// eines offen ist) — für Tests, die den Task-12-Zeitablauf zwischen
-        /// MouseDown und MouseUp nachstellen, ohne ein echtes zweites Fenster
-        /// zu aktivieren.</summary>
+        /// eines offen ist) — für Tests, die den Zeitablauf zwischen MouseDown
+        /// und MouseUp nachstellen, ohne ein echtes zweites Fenster zu
+        /// aktivieren.</summary>
         internal void RaisePopupDeactivateForTests()
         {
             if (_popup != null) _popup.RaiseDeactivateForTests();

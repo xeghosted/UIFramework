@@ -14,7 +14,7 @@ namespace UIFramework.Controls
     /// Textzone (HasNativeTextCore = false — reine Auswahl, kein Freitext,
     /// kein Caret), der Pfeil rechts ist der eine Knopf der Basis
     /// (AddButton), das aufgeklappte Popup kommt vom Popup-Anker der Basis
-    /// (OpenPopup/ClosePopup) als ListContent (Task 5).
+    /// (OpenPopup/ClosePopup) als ListContent.
     ///
     /// Enthält bewusst keinen einzigen Farbwert — alles Sichtbare kommt aus dem Skin.
     /// </summary>
@@ -138,11 +138,11 @@ namespace UIFramework.Controls
         {
             // Der Pfeilknopf togglet erst bei MouseUp (AddButton-Callback) —
             // dazwischen kann ein wegen Deaktivierung aufgeschobenes Close
-            // (Task-12-Fix) das Popup schon geschlossen haben. IsPopupOpen
-            // allein läse dann "zu" und öffnete hier fälschlich neu; darum
-            // zählt auch der Schnappschuss vom MouseDown (Task-12-Befund F1,
-            // Fix-Runde 2). ClosePopup() bleibt in beiden Fällen ein no-op,
-            // falls das Popup schon zu ist.
+            // (siehe PopupHost.OnDeactivate) das Popup schon geschlossen
+            // haben. IsPopupOpen allein läse dann "zu" und öffnete hier
+            // fälschlich neu; darum zählt auch der Schnappschuss vom
+            // MouseDown (PopupWasOpenAtMouseDown). ClosePopup() bleibt in
+            // beiden Fällen ein no-op, falls das Popup schon zu ist.
             if (IsPopupOpen || PopupWasOpenAtMouseDown) ClosePopup(); else OpenList();
         }
 

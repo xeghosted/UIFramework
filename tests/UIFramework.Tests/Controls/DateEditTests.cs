@@ -78,5 +78,19 @@ namespace UIFramework.Tests.Controls
                 Assert.False(edit.IsPopupOpenForTests);        // darf NICHT wieder offen sein
             }
         }
+
+        [Fact]
+        public void Opening_the_calendar_first_commits_unconfirmed_typed_text()
+        {
+            using (var edit = new DateEdit { Value = new DateTime(2020, 1, 1) })
+            {
+                edit.SetTextForTests(edit.FormatForTests(new DateTime(2026, 7, 28)));
+
+                edit.ClickButtonForTests(0);   // öffnet den Kalender
+
+                // Sonst öffnete er auf 2020, obwohl gerade 2026-07-28 getippt wurde.
+                Assert.Equal(new DateTime(2026, 7, 28), edit.Value);
+            }
+        }
     }
 }

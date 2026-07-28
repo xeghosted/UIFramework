@@ -166,5 +166,63 @@ namespace UIFramework.Tests.Architecture
 
             Assert.Equal(0, SkinManager.RegisteredCount);
         }
+
+        [Fact]
+        public void A_thousand_disposed_spinedits_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var spin = new SpinEdit())
+                {
+                    spin.Value = 5;
+                }
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
+
+        [Fact]
+        public void A_thousand_disposed_dateedits_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var edit = new DateEdit())
+                {
+                    edit.Value = new DateTime(2026, 7, 28);
+                }
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
+
+        [Fact]
+        public void A_thousand_disposed_checkedits_leave_nothing_registered()
+        {
+            for (int i = 0; i < 1000; i++)
+            {
+                using (var check = new CheckEdit())
+                {
+                    check.Checked = true;
+                }
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
+
+        [Fact]
+        public void Disposing_a_dateedit_with_an_open_popup_leaves_nothing_registered()
+        {
+            // ButtonEditBase.Dispose ruft ClosePopup() — der Weg muss auch
+            // greifen, wenn das Popup beim Dispose noch offen ist (nicht nur
+            // beim regulären Schließen über Wahl/Escape/Deaktivierung).
+            using (var edit = new DateEdit())
+            {
+                edit.CreateControl();
+                edit.ClickButtonForTests(0);   // öffnet den Kalender
+                Assert.True(edit.IsPopupOpenForTests);
+            }
+
+            Assert.Equal(0, SkinManager.RegisteredCount);
+        }
     }
 }

@@ -27,16 +27,8 @@ namespace UIFramework.Controls
             AddButton(EditorGlyph.ArrowDown, () => Step(-1));
 
             InnerTextBox.Text = FormatValue(_value);
-            InnerTextBox.KeyDown += (s, e) =>
-            {
-                if (e.KeyCode == Keys.Up) { Step(+1); e.Handled = true; }
-                else if (e.KeyCode == Keys.Down) { Step(-1); e.Handled = true; }
-            };
-            InnerTextBox.MouseWheel += (s, e) =>
-            {
-                Step(e.Delta > 0 ? +1 : -1);
-                ((HandledMouseEventArgs)e).Handled = true;   // Rad soll nicht zusätzlich scrollen
-            };
+            InnerTextBox.KeyDown += HandleInnerKeyDown;
+            InnerTextBox.MouseWheel += HandleInnerMouseWheel;
         }
 
         protected override string ElementKey
@@ -93,7 +85,26 @@ namespace UIFramework.Controls
 
         private void Step(int direction)
         {
+            // Erst den gerade getippten, noch unbestätigten Text übernehmen —
+            // sonst rechnet der Schritt mit dem alten _value und die Eingabe
+            // verschwindet kommentarlos (wer "50" tippt und dann klickt, statt
+            // vom getippten Wert aus zu steppen).
+            Value = SpinBehavior.ParseOrFallback(
+                InnerTextBox.Text, _value, _minValue, _maxValue, CultureInfo.CurrentCulture);
+
             Value = _value + direction * _increment;
+        }
+
+        private void HandleInnerKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Up) { Step(+1); e.Handled = true; }
+            else if (e.KeyCode == Keys.Down) { Step(-1); e.Handled = true; }
+        }
+
+        private void HandleInnerMouseWheel(object sender, MouseEventArgs e)
+        {
+            Step(e.Delta > 0 ? +1 : -1);
+            ((HandledMouseEventArgs)e).Handled = true;   // Rad soll nicht zusätzlich scrollen
         }
 
         protected override bool IsCharAllowed(char c)
@@ -122,6 +133,21 @@ namespace UIFramework.Controls
         internal string TextForTests()
         {
             return InnerTextBox.Text;
+        }
+
+        /// <summary>Simuliert eine Pfeiltaste im nativen Kern, ohne echten
+        /// Tastatur-/Fokus-Umweg (Muster: CheckEdit.PerformKey).</summary>
+        internal void PressArrowKeyForTests(Keys key)
+        {
+            var e = new KeyEventArgs(key);
+            HandleInnerKeyDown(InnerTextBox, e);
+        }
+
+        /// <summary>Simuliert Mausrad im nativen Kern; delta &gt; 0 = hoch.</summary>
+        internal void SpinByWheelForTests(int delta)
+        {
+            var e = new HandledMouseEventArgs(MouseButtons.None, 0, 0, 0, delta);
+            HandleInnerMouseWheel(InnerTextBox, e);
         }
     }
 }

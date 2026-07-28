@@ -82,12 +82,14 @@ namespace UIFramework.Controls
             string title = new DateTime(_grid.Year, _grid.Month, 1).ToString("MMMM yyyy", _culture);
             SkinPainter.DrawText(g, title, HeaderRow(), header, dpi, ContentAlignment.MiddleCenter);
 
-            // Wochentagszeile ab FirstDayOfWeek der Culture
+            // Wochentagszeile ab FirstDayOfWeek der Culture — Spalten sind
+            // Scheiben von DayNamesRow(), nicht nochmal eigene Geometrie.
+            var dayNamesRow = DayNamesRow();
             for (int c = 0; c < 7; c++)
             {
                 var dayOfWeek = (DayOfWeek)(((int)_grid.FirstDayOfWeek + c) % 7);
                 string name = _culture.DateTimeFormat.GetAbbreviatedDayName(dayOfWeek);
-                var cell = new Rectangle(c * _cellWidth, _rowHeight, _cellWidth, _rowHeight);
+                var cell = new Rectangle(dayNamesRow.X + c * _cellWidth, dayNamesRow.Y, _cellWidth, dayNamesRow.Height);
                 SkinPainter.DrawText(g, name, cell, header, dpi, ContentAlignment.MiddleCenter);
             }
 

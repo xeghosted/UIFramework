@@ -96,8 +96,8 @@ namespace UIFramework.Controls
             // Close() HIER synchron aufzurufen zerreißt den WM_ACTIVATE-Handshake:
             // Windows aktiviert danach ein "falsches" Fenster (beobachtet: die
             // Besitzerform statt der tatsächlich angeklickten) und der auslösende
-            // Klick geht verloren (Task-12-Befund F1). Darum erst NACH dem
-            // Handshake schließen — BeginInvoke braucht ein lebendes Handle.
+            // Klick geht verloren. Darum erst NACH dem Handshake schließen —
+            // BeginInvoke braucht ein lebendes Handle.
             if (IsHandleCreated)
                 BeginInvoke((MethodInvoker)DeferredClose);
             else

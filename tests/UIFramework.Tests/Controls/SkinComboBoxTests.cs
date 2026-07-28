@@ -144,6 +144,40 @@ namespace UIFramework.Tests.Controls
             }
         }
 
+        [Fact]
+        public void An_abandoned_press_does_not_leave_a_stale_snapshot_that_bends_the_next_click()
+        {
+            using (var combo = new SkinComboBox())
+            {
+                combo.Items.Add("alpha");
+                combo.Size = new Size(120, 24);
+                combo.CreateControl();
+
+                combo.ClickButtonForTests(0);                  // öffnet
+                Assert.True(combo.IsPopupOpenForTests);
+
+                combo.PressButtonForTests(0);                  // Down auf dem Pfeil (Popup offen)
+                combo.LeaveForTests();                         // Maus verlässt den Editor ...
+                combo.ReleaseButtonForTests(0);                // ... Up kommt "außerhalb" an, kein Toggle
+
+                // Der abgebrochene Klick hat das Popup NICHT geschlossen — das
+                // erledigt jetzt eine unabhängige Deaktivierung (z. B. Klick
+                // anderswo), ohne dass hier ein neuer MouseDown den
+                // Schnappschuss auffrischt.
+                combo.RaisePopupDeactivateForTests();
+                Application.DoEvents();
+                Assert.False(combo.IsPopupOpenForTests);
+
+                // Ein rein programmatischer Klick (kein MouseDown davor) liest
+                // jetzt PopupWasOpenAtMouseDown — der muss korrekt zurückgesetzt
+                // sein, sonst öffnet dieser Klick nicht, weil der stale "war
+                // offen"-Wert ihn in ClosePopup() umbiegt.
+                combo.ClickButtonForTests(0);
+
+                Assert.True(combo.IsPopupOpenForTests);
+            }
+        }
+
         private sealed class StubSkinWithComboBox : SkinBase
         {
             private readonly Color _background;

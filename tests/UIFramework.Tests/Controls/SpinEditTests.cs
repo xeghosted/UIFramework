@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.Windows.Forms;
 using UIFramework.Controls;
 using UIFramework.Core.Skinning;
 using UIFramework.Tests.TestSupport;
@@ -72,6 +73,45 @@ namespace UIFramework.Tests.Controls
             {
                 spin.MinValue = 5;
                 Assert.Equal(5, spin.Value);
+            }
+        }
+
+        [Fact]
+        public void Clicking_the_up_button_first_commits_unconfirmed_typed_text()
+        {
+            using (var spin = new SpinEdit { MinValue = 0, MaxValue = 100, Increment = 5, Value = 20 })
+            {
+                spin.SetTextForTests("50");   // getippt, aber nicht bestätigt
+
+                spin.ClickButtonForTests(0);   // Auf
+
+                Assert.Equal(55, spin.Value);   // 50 + 5, nicht 20 + 5 (Eingabe wäre sonst weg)
+            }
+        }
+
+        [Fact]
+        public void Pressing_the_up_arrow_key_first_commits_unconfirmed_typed_text()
+        {
+            using (var spin = new SpinEdit { MinValue = 0, MaxValue = 100, Increment = 5, Value = 20 })
+            {
+                spin.SetTextForTests("50");
+
+                spin.PressArrowKeyForTests(Keys.Up);
+
+                Assert.Equal(55, spin.Value);
+            }
+        }
+
+        [Fact]
+        public void Spinning_the_mouse_wheel_up_first_commits_unconfirmed_typed_text()
+        {
+            using (var spin = new SpinEdit { MinValue = 0, MaxValue = 100, Increment = 5, Value = 20 })
+            {
+                spin.SetTextForTests("50");
+
+                spin.SpinByWheelForTests(+120);   // positives Delta = hoch
+
+                Assert.Equal(55, spin.Value);
             }
         }
     }
