@@ -167,16 +167,35 @@ namespace UIFramework.Grid
 
         internal RowViewport CurrentRowViewport
         {
-            get
-            {
-                int height = ClientSize.Height - HeaderHeight;
-                return new RowViewport(RowHeight, height, _verticalOffset, RowCount);
-            }
+            get { return new RowViewport(RowHeight, CurrentReservation.ViewportHeight, _verticalOffset, RowCount); }
         }
 
         internal ColumnLayout CurrentColumnLayout
         {
-            get { return new ColumnLayout(Columns, _horizontalOffset, ClientSize.Width, DeviceDpi); }
+            get { return new ColumnLayout(Columns, _horizontalOffset, CurrentReservation.ViewportWidth, DeviceDpi); }
+        }
+
+        /// <summary>
+        /// Sichtbarkeit der Leisten und die dem Inhalt verbleibende Fläche.
+        /// Die Sonden mit Sichtfenster 0 sind billig und bewusst: TotalHeight/
+        /// TotalWidth hängen vom Sichtfenster nicht ab, und die Gesamtmaß-
+        /// Formeln bleiben so an ihrer einen Stelle statt hier dupliziert.
+        /// Misst RowHeight/HeaderHeight je Zugriff — dasselbe dokumentierte
+        /// GDI+-Rauschen wie bei den Nachbarn (siehe offene-punkte.md).
+        /// </summary>
+        internal ScrollBarReservation CurrentReservation
+        {
+            get
+            {
+                int rowHeight = RowHeight;
+                int contentHeight = new RowViewport(rowHeight, 0, 0, RowCount).TotalHeight;
+                int contentWidth = new ColumnLayout(Columns, 0, 0, DeviceDpi).TotalWidth;
+
+                return new ScrollBarReservation(
+                    ClientSize.Width, ClientSize.Height, HeaderHeight,
+                    contentWidth, contentHeight,
+                    DpiScale.Scale(SkinScrollBar.ThicknessLogical, DeviceDpi));
+            }
         }
 
         private int RowCount
@@ -351,37 +370,36 @@ namespace UIFramework.Grid
             _syncing = true;
             try
             {
+                var reservation = CurrentReservation;
                 var rows = CurrentRowViewport;
                 var columns = CurrentColumnLayout;
 
-                int barThickness = DpiScale.Scale(12, DeviceDpi);
-                int viewportHeight = ClientSize.Height - HeaderHeight;
-
-                bool needsVertical = rows.MaxScrollOffset > 0;
-                bool needsHorizontal = columns.MaxScrollOffset > 0;
+                int barThickness = DpiScale.Scale(SkinScrollBar.ThicknessLogical, DeviceDpi);
 
                 // Bereich und Wert IMMER nachziehen, auch wenn die Leiste gerade
                 // verschwindet: Sonst bliebe ihr Value auf dem Stand von vor dem
                 // Schrumpfen stehen (unsichtbar, aber mit einem Wert, der zur
                 // neuen Quelle nicht mehr passt) und risse beim naechsten
                 // Sichtbarwerden einen falschen Sprung mit sich.
-                _vertical.Visible = needsVertical;
+                _vertical.Visible = reservation.VerticalVisible;
                 _vertical.Bounds = new Rectangle(
                     ClientSize.Width - barThickness, HeaderHeight,
-                    barThickness, viewportHeight > 0 ? viewportHeight : 1);
+                    barThickness, reservation.ViewportHeight > 0 ? reservation.ViewportHeight : 1);
                 _vertical.Minimum = 0;
                 _vertical.Maximum = rows.TotalHeight;
-                _vertical.LargeChange = viewportHeight > 0 ? viewportHeight : 1;
+                _vertical.LargeChange = reservation.ViewportHeight > 0 ? reservation.ViewportHeight : 1;
                 _vertical.SmallChange = RowHeight;
                 _vertical.Value = _verticalOffset;
 
-                _horizontal.Visible = needsHorizontal;
+                // Die waagerechte Leiste endet an der nutzbaren Breite — sonst
+                // läge ihr Ende unter der senkrechten Leiste in der Ecke.
+                _horizontal.Visible = reservation.HorizontalVisible;
                 _horizontal.Bounds = new Rectangle(
                     0, ClientSize.Height - barThickness,
-                    ClientSize.Width, barThickness);
+                    reservation.ViewportWidth > 0 ? reservation.ViewportWidth : 1, barThickness);
                 _horizontal.Minimum = 0;
                 _horizontal.Maximum = columns.TotalWidth;
-                _horizontal.LargeChange = ClientSize.Width > 0 ? ClientSize.Width : 1;
+                _horizontal.LargeChange = reservation.ViewportWidth > 0 ? reservation.ViewportWidth : 1;
                 _horizontal.SmallChange = RowHeight;
                 _horizontal.Value = _horizontalOffset;
             }
@@ -737,7 +755,7 @@ namespace UIFramework.Grid
             if (rowIndex < 0 || rowIndex >= RowCount) return;
 
             int rowHeight = RowHeight;
-            int viewportHeight = ClientSize.Height - HeaderHeight;
+            int viewportHeight = CurrentReservation.ViewportHeight;
             if (viewportHeight <= 0) return;
 
             int top = rowIndex * rowHeight;

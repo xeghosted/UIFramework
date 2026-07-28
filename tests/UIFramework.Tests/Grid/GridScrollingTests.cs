@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Windows.Forms;
 using UIFramework.Grid;
 using UIFramework.Tests.TestSupport;
 using Xunit;
@@ -129,6 +130,68 @@ namespace UIFramework.Tests.Grid
                 grid.PerformWheel(-120);
 
                 Assert.True(grid.VerticalOffset > before);
+            }
+        }
+
+        [Fact]
+        public void Columns_reaching_the_right_edge_with_a_vertical_bar_get_a_horizontal_bar()
+        {
+            // Der 2a-Befund: 2x200 logisch = 400 physisch füllen die volle Breite.
+            // Alt: kein waagerechtes Scrollen möglich, die letzten ~12px lagen
+            // dauerhaft unter der senkrechten Leiste. Neu: Die Reservierung macht
+            // das Sichtfenster schmaler, also erscheint die waagerechte Leiste.
+            using (var grid = Grid(1000, columnWidth: 200))
+            {
+                Assert.True(grid.VerticalScrollBar.Visible);
+                Assert.True(grid.HorizontalScrollBar.Visible);
+            }
+        }
+
+        [Fact]
+        public void At_max_offset_the_last_column_edge_lies_inside_the_viewport()
+        {
+            using (var grid = Grid(1000, columnWidth: 200))
+            {
+                grid.HorizontalOffset = int.MaxValue;   // klemmt auf MaxScrollOffset
+
+                var columns = grid.CurrentColumnLayout;
+                int last = grid.Columns.Count - 1;
+                int rightEdge = columns.ColumnLeft(last) + columns.ColumnWidth(last);
+
+                Assert.Equal(grid.CurrentReservation.ViewportWidth, rightEdge);
+            }
+        }
+
+        [Fact]
+        public void The_two_bars_do_not_overlap_in_the_corner()
+        {
+            using (var grid = Grid(1000, columnWidth: 200))
+            {
+                Assert.True(grid.VerticalScrollBar.Visible);
+                Assert.True(grid.HorizontalScrollBar.Visible);
+
+                // Rectangle.IsEmpty prüft NICHT "keine Fläche", sondern
+                // Gleichheit mit Rectangle.Empty (X=0,Y=0 eingeschlossen) — ein
+                // dokumentiertes .NET-Kuriosum. Die Leisten berühren sich exakt
+                // in der Ecke (Schnittfläche 0×0, aber nicht bei X=0,Y=0), darum
+                // IntersectsWith statt Intersect(...).IsEmpty.
+                Assert.False(grid.VerticalScrollBar.Bounds.IntersectsWith(grid.HorizontalScrollBar.Bounds));
+            }
+        }
+
+        [Fact]
+        public void End_scrolls_the_last_row_fully_above_the_horizontal_bar()
+        {
+            using (var grid = Grid(1000, columnWidth: 200))
+            {
+                grid.PerformKey(Keys.End);
+
+                var rows = grid.CurrentRowViewport;
+                int bottomInView = rows.RowTop(999) + grid.RowHeight;
+
+                // Die Unterkante der letzten Zeile schließt mit der nutzbaren Höhe ab —
+                // läge sie tiefer, verschwände sie unter der waagerechten Leiste.
+                Assert.Equal(grid.CurrentReservation.ViewportHeight, bottomInView);
             }
         }
     }

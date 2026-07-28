@@ -31,8 +31,13 @@ namespace UIFramework.Controls
         /// </summary>
         private const int MinThumbLengthLogical = 16;
 
-        /// <summary>Dicke der Leiste quer zur Achse, logisch.</summary>
-        private const int ThicknessLogical = 12;
+        /// <summary>
+        /// Dicke der Leiste quer zur Achse, logisch. Öffentlich, weil
+        /// GridControl mit demselben Maß den Platz reserviert, den seine
+        /// Leisten dem Inhalt wegnehmen — zwei unabhängige Zahlen würden
+        /// unbemerkt auseinanderlaufen.
+        /// </summary>
+        public const int ThicknessLogical = 12;
 
         private Orientation _orientation = Orientation.Vertical;
         private int _minimum;
