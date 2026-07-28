@@ -24,7 +24,7 @@ namespace UIFramework.Controls
     {
         private readonly List<object> _items = new List<object>();
         private int _selectedIndex = -1;
-        private ComboPopup _popup;
+        private PopupHost _popup;
 
         public SkinComboBox()
         {
@@ -161,12 +161,10 @@ namespace UIFramework.Controls
         {
             if (_items.Count == 0) return;
 
-            _popup = new ComboPopup(_items, () => _selectedIndex);
-            _popup.ItemChosen += index =>
-            {
-                SelectedIndex = index;
-                Close();
-            };
+            var list = new ListContent(_items, () => _selectedIndex);
+            list.ItemChosen += index => { SelectedIndex = index; };
+
+            _popup = new PopupHost(list);
             _popup.FormClosed += (s, e) =>
             {
                 _popup = null;
