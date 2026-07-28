@@ -24,7 +24,7 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
                 ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
                 ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab,
-                ElementKeys.EditorButton, ElementKeys.CheckBox,
+                ElementKeys.EditorButton, ElementKeys.CheckBox, ElementKeys.CheckBoxIndicator,
                 ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday
             };
             ElementState[] states =
@@ -56,7 +56,7 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
                 ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
                 ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab,
-                ElementKeys.EditorButton, ElementKeys.CheckBox,
+                ElementKeys.EditorButton, ElementKeys.CheckBox, ElementKeys.CheckBoxIndicator,
                 ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday
             };
 
@@ -207,6 +207,29 @@ namespace UIFramework.Tests.Skinning
             Assert.True(distance > 0.2f,
                 skin.Name + ": ausgewählte Zelle — Text " + selected.ForeColor +
                 " auf " + selected.Background + " (Abstand " + distance + ").");
+        }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void The_checkedit_control_is_borderless_and_reads_like_a_label_while_its_indicator_keeps_the_border(ISkin skin)
+        {
+            // Befund F2: CheckEdit sollte wie ein normales Checkbox-Control
+            // aussehen — kein Rahmen ums ganze Control, Text wie ein Label.
+            // Nur die gezeichnete Box (CheckBoxIndicator) behält die klassische
+            // Checkbox-Optik (Rahmen, eigene Fläche je Zustand).
+            var label = skin.GetAppearance(ElementKeys.Label, ElementState.Normal);
+            var checkBox = skin.GetAppearance(ElementKeys.CheckBox, ElementState.Normal);
+            var indicator = skin.GetAppearance(ElementKeys.CheckBoxIndicator, ElementState.Normal);
+
+            Assert.Equal(0, checkBox.BorderWidth);
+            Assert.Equal(label.ForeColor, checkBox.ForeColor);
+
+            // NotSame zuerst: sonst bestünde die BorderWidth-Prüfung unten
+            // zufällig auch dann, wenn CheckBoxIndicator gar nicht definiert
+            // wäre und nur auf die (ebenfalls BorderWidth==1) Notfarbe fiele.
+            Assert.NotSame(SkinBase.FallbackAppearance, indicator);
+            Assert.True(indicator.BorderWidth >= 1,
+                skin.Name + ": CheckBoxIndicator/Normal sollte weiterhin einen Rahmen haben.");
         }
     }
 }

@@ -547,9 +547,42 @@ namespace UIFramework.Core.Skinning.Skins
 
         private void DefineCheckBox()
         {
-            // ForeColor ist die Hakenfarbe. Selected fällt bewusst auf Normal zurück —
-            // "angehakt" zeigt der Haken, nicht die Fläche.
+            // Das Control als Ganzes: Fläche wie Label (siehe DefineLabel) —
+            // derselbe Ton wie Panel/Window, verschmilzt mit der Fläche
+            // darunter, kein Rahmen ums Ganze. Nur Normal und Disabled
+            // definiert, genau wie Label: Hovered/Pressed/Selected fallen
+            // bewusst auf Normal zurück (Rückfallkette, siehe SkinBase) — der
+            // Text färbt bei Hover NICHT um, das übernimmt allein die Box
+            // (CheckBoxIndicator). Padding bleibt bei 2, nicht Labels 0:
+            // CheckEdit.PaintContent/GetPreferredSize misst Box und Text über
+            // GetContentRectangle/InflateByPadding dieser Erscheinung.
             Define(ElementKeys.CheckBox, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.CheckBox, ElementState.Disabled, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            // Die gezeichnete Box — unverändert aus der bisherigen
+            // CheckBox-Definition übernommen, nur der Schlüssel ist neu.
+            // ForeColor ist die Hakenfarbe. Selected fällt bewusst auf Normal
+            // zurück — "angehakt" zeigt der Haken, nicht die Fläche.
+            Define(ElementKeys.CheckBoxIndicator, ElementState.Normal, new ElementAppearance
             {
                 Background = SurfaceRaised,
                 BorderColor = BorderStrong,
@@ -560,7 +593,7 @@ namespace UIFramework.Core.Skinning.Skins
                 Padding = new Padding(2)
             });
 
-            Define(ElementKeys.CheckBox, ElementState.Hovered, new ElementAppearance
+            Define(ElementKeys.CheckBoxIndicator, ElementState.Hovered, new ElementAppearance
             {
                 Background = SurfaceRaised,
                 BorderColor = Accent,
@@ -571,7 +604,7 @@ namespace UIFramework.Core.Skinning.Skins
                 Padding = new Padding(2)
             });
 
-            Define(ElementKeys.CheckBox, ElementState.Pressed, new ElementAppearance
+            Define(ElementKeys.CheckBoxIndicator, ElementState.Pressed, new ElementAppearance
             {
                 Background = DisabledFill,
                 BorderColor = AccentPressed,
@@ -582,7 +615,7 @@ namespace UIFramework.Core.Skinning.Skins
                 Padding = new Padding(2)
             });
 
-            Define(ElementKeys.CheckBox, ElementState.Disabled, new ElementAppearance
+            Define(ElementKeys.CheckBoxIndicator, ElementState.Disabled, new ElementAppearance
             {
                 Background = DisabledFill,
                 BorderColor = BorderSubtle,

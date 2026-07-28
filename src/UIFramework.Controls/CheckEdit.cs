@@ -9,10 +9,11 @@ using UIFramework.Core.Skinning;
 namespace UIFramework.Controls
 {
     /// <summary>
-    /// Zweizustands-Schalter: gezeichnete Box (ElementKeys.CheckBox, ihr
-    /// ForeColor ist die Hakenfarbe) plus Text rechts daneben. Eigenständig
-    /// neben ButtonEditBase — es gibt kein Textfeld. Umschalten per Klick und
-    /// Leertaste; fokussierbar mit Fokusring.
+    /// Zweizustands-Schalter: Control-Fläche wie ein Label (ElementKeys.CheckBox,
+    /// ForeColor ist die Textfarbe, kein Rahmen ums Ganze) plus gezeichnete Box
+    /// (ElementKeys.CheckBoxIndicator, ihr ForeColor ist die Hakenfarbe) mit Text
+    /// rechts daneben. Eigenständig neben ButtonEditBase — es gibt kein Textfeld.
+    /// Umschalten per Klick und Leertaste; fokussierbar mit Fokusring.
     ///
     /// Enthält bewusst keinen einzigen Farbwert — alles Sichtbare kommt aus dem Skin.
     /// </summary>
@@ -83,14 +84,20 @@ namespace UIFramework.Controls
             var box = new Rectangle(content.Left, content.Top + (content.Height - side) / 2, side, side);
 
             // Fläche und Rahmen der Box malt die Basis NICHT — sie hat den
-            // Control-Hintergrund gemalt. Die Box ist hier Inhalt.
-            SkinPainter.DrawBackground(g, box, appearance, DeviceDpi);
-            SkinPainter.DrawBorder(g, box, appearance, DeviceDpi);
+            // Control-Hintergrund gemalt (jetzt rahmenlos, wie ein Label). Die
+            // Box ist hier Inhalt und hat ihre EIGENE Erscheinung
+            // (CheckBoxIndicator): sie bleibt die klassische Checkbox-Optik
+            // (Fläche/Rahmen/Haken je Zustand), unabhängig davon, wie das
+            // Control drumherum aussieht.
+            var indicator = SkinManager.Current.GetAppearance(ElementKeys.CheckBoxIndicator, State);
+
+            SkinPainter.DrawBackground(g, box, indicator, DeviceDpi);
+            SkinPainter.DrawBorder(g, box, indicator, DeviceDpi);
 
             if (_checked)
             {
                 // Haken als Polylinie im inneren Drittel der Box.
-                var pen = ResourceCache.Shared.GetPen(appearance.ForeColor, Math.Max(2, side / 8));
+                var pen = ResourceCache.Shared.GetPen(indicator.ForeColor, Math.Max(2, side / 8));
                 int x0 = box.Left + side / 4;
                 int y0 = box.Top + side / 2;
                 int x1 = box.Left + side * 2 / 5;

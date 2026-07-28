@@ -69,8 +69,12 @@ namespace UIFramework.Core.Skinning
         /// Dropdown) — elementweise gemalt, kein eigenes Control.</summary>
         public const string EditorButton = "EditorButton";
 
-        /// <summary>Die gezeichnete Box eines CheckEdit. Der Haken nutzt ForeColor.</summary>
+        /// <summary>Das CheckEdit-Control als Ganzes: Fläche wie ein Label,
+        /// ForeColor ist die Textfarbe.</summary>
         public const string CheckBox = "CheckBox";
+
+        /// <summary>Die gezeichnete Box eines CheckEdit. Der Haken nutzt ForeColor.</summary>
+        public const string CheckBoxIndicator = "CheckBoxIndicator";
 
         /// <summary>Ein Tag im Monatsblatt. Disabled = Tag des Nachbarmonats —
         /// die ersten Schlüssel mit dieser Semantik (fürs Skin-Format dokumentieren,
