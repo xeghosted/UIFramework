@@ -64,8 +64,10 @@ namespace UIFramework.Grid
         }
 
         /// <summary>
-        /// Verbindet einen Spaltenschlüssel mit dem Weg, seinen Wert zu SCHREIBEN.
-        /// Spalten ohne Setter bleiben lesbar, aber ein SetValue auf ihnen wirft ArgumentException.
+        /// Verbindet einen Spaltenschlüssel mit dem Weg, seinen Wert zu SCHREIBEN —
+        /// das Gegenstück zu Map. Spalten ohne Setter bleiben lesbar, aber ein
+        /// SetValue auf ihnen wirft: still ins Leere zu schreiben sähe aus wie
+        /// Speichern und wäre keins.
         /// </summary>
         public void MapSet(string columnKey, Action<T, object> setter)
         {

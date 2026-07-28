@@ -13,6 +13,17 @@ namespace UIFramework.Tests.Grid
             public int Rang;
         }
 
+        /// <summary>Eine Quelle, die NUR IGridDataSource ist — der Fall, für den
+        /// der Dekorator-Wurf existiert. Eine ListDataSource ohne MapSet taugt
+        /// hier NICHT als Fixture: Sie implementiert das Interface immer und
+        /// wirft beim Schreiben ihre eigene ArgumentException (fehlender
+        /// Setter), nicht die des Dekorators (Plan-Korrektur nach Task-2-Review).</summary>
+        private sealed class ReadOnlySource : IGridDataSource
+        {
+            public int RowCount { get { return 4; } }
+            public object GetValue(int rowIndex, string columnKey) { return "r" + rowIndex; }
+        }
+
         private static List<Person> People()
         {
             return new List<Person>
@@ -63,13 +74,13 @@ namespace UIFramework.Tests.Grid
         [Fact]
         public void A_decorator_over_a_read_only_inner_source_throws_on_write()
         {
-            var readOnly = new ListDataSource<Person>(People());
-            readOnly.Map("Name", p => p.Name);
-
-            var sorted = new SortedSource(readOnly);
-
+            var sorted = new SortedSource(new ReadOnlySource());
             Assert.Throws<InvalidOperationException>(
                 () => ((IWritableGridDataSource)sorted).SetValue(0, "Name", "x"));
+
+            var filtered = new FilteredSource(new ReadOnlySource(), (s, i) => true);
+            Assert.Throws<InvalidOperationException>(
+                () => ((IWritableGridDataSource)filtered).SetValue(0, "Name", "x"));
         }
 
         [Fact]

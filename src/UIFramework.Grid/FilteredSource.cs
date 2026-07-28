@@ -72,16 +72,7 @@ namespace UIFramework.Grid
                 throw new InvalidOperationException(
                     "Die innere Quelle ist nicht schreibbar — SetValue hat kein Ziel.");
 
-            try
-            {
-                writable.SetValue(_matching[rowIndex], columnKey, value);
-            }
-            catch (ArgumentException ex) when (ex.Message.Contains("MapSet"))
-            {
-                // Die innere Quelle hat keinen Setter — interpretieren als "nicht schreibbar"
-                throw new InvalidOperationException(
-                    "Die innere Quelle ist nicht schreibbar — SetValue hat kein Ziel.", ex);
-            }
+            writable.SetValue(_matching[rowIndex], columnKey, value);
         }
     }
 }
