@@ -92,7 +92,33 @@ namespace UIFramework.Controls
         protected override void OnDeactivate(EventArgs e)
         {
             base.OnDeactivate(e);
+
+            // Close() HIER synchron aufzurufen zerreißt den WM_ACTIVATE-Handshake:
+            // Windows aktiviert danach ein "falsches" Fenster (beobachtet: die
+            // Besitzerform statt der tatsächlich angeklickten) und der auslösende
+            // Klick geht verloren (Task-12-Befund F1). Darum erst NACH dem
+            // Handshake schließen — BeginInvoke braucht ein lebendes Handle.
+            if (IsHandleCreated)
+                BeginInvoke((MethodInvoker)DeferredClose);
+            else
+                DeferredClose();
+        }
+
+        private void DeferredClose()
+        {
+            // Zwischen dem Aufschieben und seiner Ausführung kann das Popup
+            // längst anderweitig geschlossen/entsorgt worden sein (CloseRequested,
+            // ClosePopup(), oder ein zweiter Deaktivierungs-Aufschub) — dann nicht
+            // nochmal zugreifen.
+            if (IsDisposed || Disposing) return;
             Close();
+        }
+
+        // ---- Nur für Tests --------------------------------------------------
+
+        internal void RaiseDeactivateForTests()
+        {
+            OnDeactivate(EventArgs.Empty);
         }
     }
 }
