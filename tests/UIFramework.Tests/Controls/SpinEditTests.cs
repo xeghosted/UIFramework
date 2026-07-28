@@ -114,5 +114,27 @@ namespace UIFramework.Tests.Controls
                 Assert.Equal(55, spin.Value);
             }
         }
+
+        [Fact]
+        public void Stepping_with_unconfirmed_text_raises_ValueChanged_once_with_the_final_value()
+        {
+            using (var spin = new SpinEdit { MinValue = 0, MaxValue = 100, Increment = 5, Value = 20 })
+            {
+                spin.SetTextForTests("50");   // weicht vom bestätigten Wert 20 ab
+
+                int raises = 0;
+                decimal? lastValue = null;
+                spin.ValueChanged += (s, e) => { raises++; lastValue = spin.Value; };
+
+                spin.ClickButtonForTests(0);   // Auf
+
+                // GENAU EIN Ereignis für diese eine Nutzeraktion — nicht eins
+                // für den Zwischen-Commit (50) und ein zweites für den Schritt
+                // (55); der Aufrufer darf den nie angeforderten Zwischenwert
+                // nie zu sehen bekommen.
+                Assert.Equal(1, raises);
+                Assert.Equal(55m, lastValue);
+            }
+        }
     }
 }

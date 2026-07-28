@@ -85,14 +85,17 @@ namespace UIFramework.Controls
 
         private void Step(int direction)
         {
-            // Erst den gerade getippten, noch unbestätigten Text übernehmen —
-            // sonst rechnet der Schritt mit dem alten _value und die Eingabe
-            // verschwindet kommentarlos (wer "50" tippt und dann klickt, statt
-            // vom getippten Wert aus zu steppen).
-            Value = SpinBehavior.ParseOrFallback(
+            // Erst den gerade getippten, noch unbestätigten Text in einen Wert
+            // umrechnen — sonst rechnet der Schritt mit dem alten _value und
+            // die Eingabe verschwindet kommentarlos (wer "50" tippt und dann
+            // klickt, statt vom getippten Wert aus zu steppen). Bewusst NUR
+            // EINE Zuweisung an Value: zwei sequenzielle Writes (erst der
+            // Commit, dann der Schritt) würden ValueChanged zweimal feuern,
+            // einmal mit dem nie angeforderten Zwischenwert. Value klemmt den
+            // fertigen Endwert wie bisher selbst.
+            decimal confirmed = SpinBehavior.ParseOrFallback(
                 InnerTextBox.Text, _value, _minValue, _maxValue, CultureInfo.CurrentCulture);
-
-            Value = _value + direction * _increment;
+            Value = confirmed + direction * _increment;
         }
 
         private void HandleInnerKeyDown(object sender, KeyEventArgs e)
