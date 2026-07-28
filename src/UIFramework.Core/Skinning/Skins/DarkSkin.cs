@@ -39,6 +39,9 @@ namespace UIFramework.Core.Skinning.Skins
             DefineTextBox();
             DefineComboBox();
             DefineTab();
+            DefineEditorButton();
+            DefineCheckBox();
+            DefineCalendar();
         }
 
         private void DefineButton()
@@ -490,6 +493,196 @@ namespace UIFramework.Core.Skinning.Skins
                 ForeColor = TextDisabled,
                 Font = BodyFont,
                 Padding = new Padding(14, 8, 14, 8)
+            });
+        }
+
+        private void DefineEditorButton()
+        {
+            // Bewusst flacher als ein SkinButton: Der Knopf sitzt IN einem Editor,
+            // dessen Rahmen die Kontur schon liefert.
+            Define(ElementKeys.EditorButton, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.EditorButton, ElementState.Hovered, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.EditorButton, ElementState.Pressed, new ElementAppearance
+            {
+                Background = Accent,
+                BorderColor = Accent,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = Color.FromArgb(255, 255, 255, 255),
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.EditorButton, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+        }
+
+        private void DefineCheckBox()
+        {
+            // ForeColor ist die Hakenfarbe. Selected fällt bewusst auf Normal zurück —
+            // "angehakt" zeigt der Haken, nicht die Fläche.
+            Define(ElementKeys.CheckBox, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = Accent,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.CheckBox, ElementState.Hovered, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Accent,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = AccentHover,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.CheckBox, ElementState.Pressed, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = AccentPressed,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = AccentPressed,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.CheckBox, ElementState.Disabled, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+        }
+
+        private void DefineCalendar()
+        {
+            // Tage: randlos, die Auswahl trägt die Fläche. Disabled = Nachbarmonat.
+            Define(ElementKeys.CalendarDay, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.CalendarDay, ElementState.Hovered, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.CalendarDay, ElementState.Selected, new ElementAppearance
+            {
+                Background = Accent,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.CalendarDay, ElementState.Disabled, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.CalendarHeader, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.CalendarHeader, ElementState.Hovered, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.CalendarToday, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = Accent,
+                Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.CalendarToday, ElementState.Hovered, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = AccentHover,
+                Font = BodyFont,
+                Padding = new Padding(4)
             });
         }
     }

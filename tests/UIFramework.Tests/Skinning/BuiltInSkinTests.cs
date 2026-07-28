@@ -23,7 +23,9 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Focus, ElementKeys.Window,
                 ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
                 ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
-                ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab
+                ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab,
+                ElementKeys.EditorButton, ElementKeys.CheckBox,
+                ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday
             };
             ElementState[] states =
             {
@@ -53,7 +55,9 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.Button, ElementKeys.Panel, ElementKeys.Label, ElementKeys.Window,
                 ElementKeys.Grid, ElementKeys.GridHeader, ElementKeys.GridCell,
                 ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
-                ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab
+                ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab,
+                ElementKeys.EditorButton, ElementKeys.CheckBox,
+                ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday
             };
 
             foreach (var element in elements)

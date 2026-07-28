@@ -64,5 +64,24 @@ namespace UIFramework.Core.Skinning
 
         /// <summary>Ein Reiter in der Kopfleiste von SkinTabControl.</summary>
         public const string Tab = "Tab";
+
+        /// <summary>Ein Knopf in der Knopfzone eines Editors (Spin-Pfeile, Kalender,
+        /// Dropdown) — elementweise gemalt, kein eigenes Control.</summary>
+        public const string EditorButton = "EditorButton";
+
+        /// <summary>Die gezeichnete Box eines CheckEdit. Der Haken nutzt ForeColor.</summary>
+        public const string CheckBox = "CheckBox";
+
+        /// <summary>Ein Tag im Monatsblatt. Disabled = Tag des Nachbarmonats —
+        /// die ersten Schlüssel mit dieser Semantik (fürs Skin-Format dokumentieren,
+        /// Teilprojekt 6).</summary>
+        public const string CalendarDay = "CalendarDay";
+
+        /// <summary>Kopf des Monatsblatts: Monat/Jahr-Zeile und Wochentagszeile.
+        /// Hovered gilt für die Vor/Zurück-Pfeilflächen.</summary>
+        public const string CalendarHeader = "CalendarHeader";
+
+        /// <summary>Die Heute-Zeile unter dem Monatsblatt.</summary>
+        public const string CalendarToday = "CalendarToday";
     }
 }
