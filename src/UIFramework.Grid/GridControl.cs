@@ -821,6 +821,20 @@ namespace UIFramework.Grid
             Invalidate();
         }
 
+        /// <summary>
+        /// Die Leisten-Bounds setzt SyncScrollBars bereits in physischen Pixeln
+        /// (über DeviceDpi). Die DPI-Autoskalierung der Form würde sie als
+        /// gewöhnliche Kind-Bounds ein ZWEITES Mal skalieren und die senkrechte
+        /// Leiste damit aus dem Client hinausschieben (bei 125 % lag sie auf
+        /// x=1169 von 950 — am echten Fenster unsichtbar, bis der erste Resize
+        /// sie zurückholte). Kein Test bei 96 dpi sieht das; der Scale()-Test in
+        /// GridScrollingTests stellt es nach.
+        /// </summary>
+        protected override bool ScaleChildren
+        {
+            get { return false; }
+        }
+
         protected override void OnSizeChanged(EventArgs e)
         {
             ClampOffsets();

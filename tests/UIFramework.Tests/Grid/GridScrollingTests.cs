@@ -194,5 +194,25 @@ namespace UIFramework.Tests.Grid
                 Assert.Equal(grid.CurrentReservation.ViewportHeight, bottomInView);
             }
         }
+
+        [Fact]
+        public void Form_scaling_leaves_the_bars_where_the_grid_put_them()
+        {
+            // Die DPI-Autoskalierung einer Form (AutoScaleMode.Dpi) skaliert die
+            // Bounds ALLER Kinder — auch die der Leisten, die SyncScrollBars
+            // bereits in physischen Pixeln gesetzt hat. Diese zweite Skalierung
+            // schob die senkrechte Leiste bei 125 % aus dem Client hinaus
+            // (x=1169 bei 950 Breite): am echten Fenster war sie unsichtbar,
+            // bis der erste Resize sie zurückholte. Scale() ist derselbe
+            // Codepfad wie die Autoskalierung, aber DPI-unabhängig aufrufbar —
+            // so sieht der 96-dpi-Testlauf den 120-dpi-Fehler.
+            using (var grid = Grid(1000, columnWidth: 500))
+            {
+                grid.Scale(new SizeF(1.25f, 1.25f));
+
+                Assert.Equal(grid.ClientSize.Width, grid.VerticalScrollBar.Bounds.Right);
+                Assert.Equal(grid.ClientSize.Height, grid.HorizontalScrollBar.Bounds.Bottom);
+            }
+        }
     }
 }
