@@ -570,7 +570,14 @@ namespace UIFramework.Controls
                 // wird — woanders (oder daneben) bricht den Klick ab, ohne
                 // etwas auszulösen (SkinnedControl-Muster: Verlassen räumt).
                 var hit = HitTest(e.Location);
-                if (hit.Kind == RibbonHitKind.Item && ReferenceEquals(hit.Item, pressedItem))
+                // Klick-Zeit-Recheck: Enabled kann sich zwischen Down und Up
+                // ändern (App-Timer/Async-Callback — das Ribbon ist EIN
+                // Control, kein Sub-Control pro Item), darum hier erneut
+                // prüfen statt dem Zustand von Down blind zu vertrauen —
+                // dieselbe Konvention wie MenuContent.HandleMouseClick
+                // ("if (!entry.IsSelectable) return; // Separator/Disabled/daneben: nichts").
+                if (hit.Kind == RibbonHitKind.Item && ReferenceEquals(hit.Item, pressedItem)
+                    && pressedItem.IsInteractive)
                     Execute(pressedItem);
             }
 

@@ -206,5 +206,26 @@ namespace UIFramework.Tests.Ribbon
                 Assert.Equal(1, menu.ControllerForTests.ChainDepth);
             }
         }
+
+        // ---- Fix-Runde 1: Klick-Zeit-Recheck (Review-Fund) ------------------
+
+        [Fact]
+        public void An_item_disabled_between_down_and_up_does_not_execute()
+        {
+            using (var bed = new RibbonTestBed())
+            {
+                int clicks = 0;
+                bed.Toggle.Click += (s, e) => clicks++;
+                var itemMitte = bed.CenterOf(bed.Toggle);
+
+                bed.Ribbon.PerformMouseDownForTests(itemMitte);
+                bed.Toggle.Enabled = false;   // App-Timer/Async-Callback zwischen Down und Up
+                bed.Ribbon.PerformMouseUpForTests(itemMitte);
+
+                Assert.Equal(0, clicks);
+                Assert.False(bed.Toggle.Checked);
+                Assert.False(bed.Ribbon.HasPressForTests);
+            }
+        }
     }
 }
