@@ -128,6 +128,9 @@ namespace UIFramework.Controls
         // damit Tab-Wechsel oder unterschiedlich lange Texte die Höhe nie
         // verändern — dieselbe Stabilität, die MenuBar mit "Xg" für die
         // Item-Messung erkämpft hat.
+        // Image == null lässt die Bildzone eines Items entfallen (reiner
+        // Textknopf), leerer/null Text die Textzeile (reiner Bildknopf) —
+        // bindend laut Design-Spec, Fix-Runde 1 (siehe BuildBox/PaintItem).
         private struct RibbonMetrics
         {
             public ElementAppearance TabAppearance;
@@ -378,7 +381,17 @@ namespace UIFramework.Controls
                 return new RibbonBox { Item = item, Size = new Size(separatorWidth, metrics.ContentHeight) };
             }
 
-            var textSize = SkinPainter.MeasureText(g, item.Text, metrics.ButtonAppearance, dpi);
+            // Image == null lässt die Bildzone entfallen (reiner Textknopf),
+            // leerer/null Text lässt die Textzeile entfallen (reiner
+            // Bildknopf) — Fix-Runde 1: die Spec (Modell-Abschnitt) verlangt
+            // das bindend, nicht nur als Malpfad-Kosmetik, sondern schon hier
+            // in der Messung, sonst reserviert die Box unbenutzten Platz UND
+            // der Hit-Test träfe daneben vom Gemalten. hasImage/hasText
+            // steuern deshalb Boxmessung UND Malpfad (PaintItem) konsistent
+            // aus demselben Paar Bedingungen.
+            bool hasImage = item.Image != null;
+            bool hasText = !string.IsNullOrEmpty(item.Text);
+            var textSize = SkinPainter.MeasureText(g, item.Text, metrics.ButtonAppearance, dpi);   // leer -> Size.Empty
             Size contentSize;
 
             if (item.Size == RibbonItemSize.Large)
@@ -386,17 +399,24 @@ namespace UIFramework.Controls
                 // Bild (2×) über einer Textzeile — Breite = das breitere der
                 // beiden, Höhe nur für InflateByPadding relevant (die
                 // tatsächliche Platzierungshöhe bestimmt RibbonLayout selbst
-                // über contentHeight, nicht diese Box).
-                int edge = metrics.LargeImageEdge;
-                contentSize = new Size(Math.Max(edge, textSize.Width), edge + metrics.TextLineHeight);
+                // über contentHeight, nicht diese Box). Ohne Bild trägt die
+                // Bildkante nichts zu Breite/Höhe bei, ohne Text die Textzeile
+                // nicht — fehlen beide, bleibt eine minimale (nur gepolsterte)
+                // Box übrig, kein Crash.
+                int edge = hasImage ? metrics.LargeImageEdge : 0;
+                int textRow = hasText ? metrics.TextLineHeight : 0;
+                contentSize = new Size(Math.Max(edge, textSize.Width), edge + textRow);
             }
             else
             {
                 // Bild (1×) neben dem Text, kein zusätzlicher innerer Abstand
                 // (der Brief nennt keinen — die Erscheinung liefert das
-                // Padding ringsum ohnehin über InflateByPadding).
-                int edge = metrics.SmallImageEdge;
-                contentSize = new Size(edge + textSize.Width, Math.Max(edge, metrics.TextLineHeight));
+                // Padding ringsum ohnehin über InflateByPadding). Ohne Bild
+                // beginnt der Text bei 0 (kein reservierter Bildanteil), ohne
+                // Text bleibt nur die quadratische Bildkante übrig.
+                int edge = hasImage ? metrics.SmallImageEdge : 0;
+                int textRow = hasText ? metrics.TextLineHeight : 0;
+                contentSize = new Size(edge + textSize.Width, Math.Max(edge, textRow));
             }
 
             var size = SkinPainter.InflateByPadding(contentSize, metrics.ButtonAppearance, dpi);
@@ -422,23 +442,63 @@ namespace UIFramework.Controls
 
             var inner = SkinPainter.GetContentRectangle(bounds, itemAppearance, dpi);
 
+            // Dieselben hasImage/hasText wie in BuildBox — die Box wurde
+            // bereits ohne die fehlende Zone gemessen, der Malpfad muss ihr
+            // exakt folgen (sonst träfe der Hit-Test daneben vom Gemalten).
+            bool hasImage = item.Image != null;
+            bool hasText = !string.IsNullOrEmpty(item.Text);
+
             if (item.Size == RibbonItemSize.Large)
             {
                 int edge = metrics.LargeImageEdge;
-                var imageZone = new Rectangle(inner.Left + (inner.Width - edge) / 2, inner.Top, edge, edge);
-                var textZone = Rectangle.FromLTRB(inner.Left, imageZone.Bottom, inner.Right, inner.Bottom);
 
-                SkinPainter.DrawScaledImage(g, item.Image, imageZone, item.Enabled);
-                SkinPainter.DrawText(g, item.Text, textZone, itemAppearance, dpi, ContentAlignment.BottomCenter);
+                if (hasImage && hasText)
+                {
+                    var imageZone = new Rectangle(inner.Left + (inner.Width - edge) / 2, inner.Top, edge, edge);
+                    var textZone = Rectangle.FromLTRB(inner.Left, imageZone.Bottom, inner.Right, inner.Bottom);
+
+                    SkinPainter.DrawScaledImage(g, item.Image, imageZone, item.Enabled);
+                    SkinPainter.DrawText(g, item.Text, textZone, itemAppearance, dpi, ContentAlignment.BottomCenter);
+                }
+                else if (hasImage)
+                {
+                    // Reiner Bildknopf: die Bildkante zentriert in der vollen
+                    // Innenfläche (keine Textzeile reserviert ihr Platz).
+                    var imageZone = new Rectangle(
+                        inner.Left + (inner.Width - edge) / 2, inner.Top + (inner.Height - edge) / 2, edge, edge);
+                    SkinPainter.DrawScaledImage(g, item.Image, imageZone, item.Enabled);
+                }
+                else if (hasText)
+                {
+                    // Reiner Textknopf: Text zentriert über die volle
+                    // Innenfläche (keine Bildkante zieht ihn nach unten).
+                    SkinPainter.DrawText(g, item.Text, inner, itemAppearance, dpi, ContentAlignment.MiddleCenter);
+                }
+                // Weder Bild noch Text: nichts zu malen — Fläche/Rahmen stehen bereits.
             }
             else
             {
                 int edge = metrics.SmallImageEdge;
-                var imageZone = new Rectangle(inner.Left, inner.Top + (inner.Height - edge) / 2, edge, edge);
-                var textZone = Rectangle.FromLTRB(imageZone.Right, inner.Top, inner.Right, inner.Bottom);
 
-                SkinPainter.DrawScaledImage(g, item.Image, imageZone, item.Enabled);
-                SkinPainter.DrawText(g, item.Text, textZone, itemAppearance, dpi, ContentAlignment.MiddleLeft);
+                if (hasImage && hasText)
+                {
+                    var imageZone = new Rectangle(inner.Left, inner.Top + (inner.Height - edge) / 2, edge, edge);
+                    var textZone = Rectangle.FromLTRB(imageZone.Right, inner.Top, inner.Right, inner.Bottom);
+
+                    SkinPainter.DrawScaledImage(g, item.Image, imageZone, item.Enabled);
+                    SkinPainter.DrawText(g, item.Text, textZone, itemAppearance, dpi, ContentAlignment.MiddleLeft);
+                }
+                else if (hasImage)
+                {
+                    var imageZone = new Rectangle(inner.Left, inner.Top + (inner.Height - edge) / 2, edge, edge);
+                    SkinPainter.DrawScaledImage(g, item.Image, imageZone, item.Enabled);
+                }
+                else if (hasText)
+                {
+                    // Kein Bildeinzug: der Text beginnt bei inner.Left, wie in
+                    // BuildBox gemessen (contentWidth = reine Textbreite).
+                    SkinPainter.DrawText(g, item.Text, inner, itemAppearance, dpi, ContentAlignment.MiddleLeft);
+                }
             }
         }
 
