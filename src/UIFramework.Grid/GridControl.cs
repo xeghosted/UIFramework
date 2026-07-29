@@ -47,6 +47,11 @@ namespace UIFramework.Grid
         private int _editColumn = -1;
         private bool _closingEditor;
 
+        /// <summary>Schnappschuss des Editorwerts VOM ÖFFNEN (Befund F3) — vor dem
+        /// Lostippen-Seed, siehe BeginEdit. Grundlage für den Änderungsvergleich
+        /// in CommitEdit.</summary>
+        private object _editOriginal;
+
         public GridControl()
         {
             SetStyle(ControlStyles.Selectable, true);
@@ -558,6 +563,12 @@ namespace UIFramework.Grid
             _editColumn = columnIndex;
 
             editor.EditValue = _dataSource.GetValue(rowIndex, Columns[columnIndex].Key);
+
+            // Schnappschuss VOR dem Seed (Befund F3): Der Seed ist bereits eine
+            // Nutzereingabe und muss als Änderung zählen — dieser Stand ist der,
+            // den der Editor beim Öffnen tatsächlich zeigt (siehe CommitEdit).
+            _editOriginal = editor.EditValue;
+
             if (seedText != null) editor.BeginWith(seedText);
 
             var control = editor.EditorControl;
@@ -583,10 +594,22 @@ namespace UIFramework.Grid
 
             object value = _editor.EditValue;
 
-            // Schreiben VOR dem Schließen: Wirft die App-Quelle, schlägt die
-            // Ausnahme durch und der Editor bleibt ehrlich offen (Spec 3b,
-            // Fehlerbehandlung) — nichts wird verschluckt oder halb geschlossen.
-            ((IWritableGridDataSource)_dataSource).SetValue(_editRow, Columns[_editColumn].Key, value);
+            // Nur schreiben, was sich wirklich geändert hat (Befund F3, Controller-
+            // Entscheidung), gemessen am Schnappschuss vom Öffnen (_editOriginal):
+            // (a) Ein Editor, der den Zellwert nicht darstellen kann (Combo ohne
+            // passenden Eintrag, unparsbares Datum), lädt "leer" — ohne diesen
+            // Vergleich überschriebe schon ein bloßes Wegscrollen den Originalwert
+            // mit diesem "leeren" Stand, ohne dass der Nutzer etwas getan hat.
+            // (b) Ohne den Vergleich schriebe JEDER Zwangs-Commit, auch ganz ohne
+            // Änderung — Phantom-Schreiben für App-Setter mit Seiteneffekten
+            // (Dirty-Flag, Undo-Stapel).
+            if (!Equals(_editOriginal, value))
+            {
+                // Schreiben VOR dem Schließen: Wirft die App-Quelle, schlägt die
+                // Ausnahme durch und der Editor bleibt ehrlich offen (Spec 3b,
+                // Fehlerbehandlung) — nichts wird verschluckt oder halb geschlossen.
+                ((IWritableGridDataSource)_dataSource).SetValue(_editRow, Columns[_editColumn].Key, value);
+            }
 
             CloseEditor();
         }
@@ -608,6 +631,7 @@ namespace UIFramework.Grid
                 _editor = null;
                 _editRow = -1;
                 _editColumn = -1;
+                _editOriginal = null;
 
                 // Erst abhängen, dann entfernen: Das Entfernen löst Fokuswechsel
                 // aus, deren LostFocus-Confirm sonst reentrant zurückschlüge.

@@ -137,6 +137,72 @@ namespace UIFramework.Tests.Grid
         }
 
         [Fact]
+        public void CommitEdit_does_not_call_the_setter_when_the_editor_is_unchanged()
+        {
+            // Befund F3 (Design-Entscheidung): kein Phantom-Schreiben, wenn der
+            // Nutzer nichts geaendert hat -- App-Setter mit Seiteneffekten
+            // (Dirty-Flag, Undo-Stapel) duerfen nicht unnoetig feuern.
+            var people = People(5);
+            int writes = 0;
+            var source = new ListDataSource<Person>(people);
+            source.Map("Name", p => p.Name);
+            source.MapSet("Name", (p, v) => { writes++; p.Name = (string)v; });
+
+            using (var grid = Grid(source))
+            {
+                grid.BeginEdit(1, 0);
+                grid.CommitEdit();
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal(0, writes);
+                Assert.Equal("P1", people[1].Name);
+            }
+        }
+
+        [Fact]
+        public void CommitEdit_does_not_overwrite_a_value_the_combo_cannot_represent()
+        {
+            // Befund F3: SkinComboBox.SetEditValue mappt einen Wert, der nicht in
+            // Items liegt, auf "keine Auswahl" (null) -- ohne den
+            // Original-Vergleich ueberschriebe ein reines Wegscrollen den
+            // unveraenderten Quellwert mit diesem "leeren" Stand.
+            var people = People(5);
+            int writes = 0;
+            var source = new ListDataSource<Person>(people);
+            source.Map("Name", p => p.Name);
+            source.MapSet("Name", (p, v) => { writes++; p.Name = (string)v; });
+
+            using (var grid = Grid(source))
+            {
+                grid.Columns[0].EditorFactory = () => new SkinComboBox();   // "P1" ist in keiner Liste
+
+                grid.BeginEdit(1, 0);
+                grid.CommitEdit();
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal(0, writes);
+                Assert.Equal("P1", people[1].Name);
+            }
+        }
+
+        [Fact]
+        public void A_typed_seed_counts_as_a_change_and_is_written()
+        {
+            // Befund F3: der Seed ist bereits eine Nutzereingabe -- der
+            // Schnappschuss wird VOR ihm genommen, damit er als Aenderung zaehlt.
+            var people = People(5);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.Selection.Select(2);
+                grid.PerformTyping('n');
+                grid.CommitEdit();
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("n", people[2].Name);
+            }
+        }
+
+        [Fact]
         public void CancelEdit_closes_without_writing()
         {
             var people = People(5);
@@ -214,6 +280,13 @@ namespace UIFramework.Tests.Grid
             using (var grid = Grid(source))
             {
                 grid.BeginEdit(0, 0);
+
+                // Seit Befund F3 schreibt ein unveraenderter Commit gar nicht mehr —
+                // ohne eine echte Aenderung wuerde die werfende Quelle nie erreicht
+                // und dieser Test wuerde faelschlich gruen. Die eigentliche Aussage
+                // (Ausnahme bricht durch, Editor bleibt ehrlich offen) bleibt gleich.
+                grid.CurrentEditorForTests.EditValue = "Geaendert";
+
                 Assert.Throws<InvalidOperationException>(() => grid.CommitEdit());
                 Assert.True(grid.IsEditing);   // ehrlich offen geblieben, nichts verschluckt
             }
