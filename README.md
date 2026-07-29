@@ -16,8 +16,12 @@ re-themes the whole UI, including the window's non-client title bar via DWM.
   themed title bar
 - `SkinButton`, `SkinLabel`, `SkinPanel`, `SkinTextBox`, `SkinComboBox`, `SkinTabControl`,
   `SkinScrollBar` — custom-drawn standard controls
+- `SpinEdit`, `DateEdit` (with a drawn month calendar), `CheckEdit` — editors built on a shared
+  `ButtonEditBase`: one native text core, a painted button zone, and a `PopupHost` anchor.
+  Invalid input is filtered as you type and falls back silently on commit
 - `GridControl` — virtualized grid built to stay smooth at a million rows, with sorting, filtering,
-  column resize/reorder, and keyboard navigation
+  column resize/reorder, keyboard navigation, and in-cell editing (F2, double click or type-to-edit;
+  Tab moves on) that writes back through sorted and filtered views to the correct source row
 
 ## Requirements
 
