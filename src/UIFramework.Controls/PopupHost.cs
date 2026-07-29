@@ -31,8 +31,21 @@ namespace UIFramework.Controls
     public sealed class PopupHost : Form
     {
         private readonly IPopupContent _content;
+        private readonly bool _nonActivating;
 
-        public PopupHost(IPopupContent content)
+        public PopupHost(IPopupContent content) : this(content, false)
+        {
+        }
+
+        /// <summary>
+        /// nonActivating: Für Menüs. Das Popup nimmt NIE den Fokus (WS_EX_NOACTIVATE,
+        /// ShowWithoutActivation) — das Besitzerfenster bleibt aktiv, seine Titelleiste
+        /// malt sich nicht "inaktiv", und der WM_ACTIVATE-Tanz, aus dem die härtesten
+        /// 3a-Fehler kamen, findet gar nicht erst statt. Der Deaktivierungs-Schließpfad
+        /// unten ist in diesem Modus bewusst tot: Ein nie aktives Fenster deaktiviert
+        /// nie — geschlossen wird ausschließlich von außen (MenuController).
+        /// </summary>
+        public PopupHost(IPopupContent content, bool nonActivating)
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
             _content = content;
@@ -46,6 +59,23 @@ namespace UIFramework.Controls
 
             _content.VisualChanged += (s, e) => Invalidate();
             _content.CloseRequested += (s, e) => Close();
+            _nonActivating = nonActivating;
+        }
+
+        protected override bool ShowWithoutActivation
+        {
+            get { return _nonActivating; }
+        }
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                // WS_EX_NOACTIVATE: Mausklicks kommen an, aktivieren aber nicht.
+                if (_nonActivating) cp.ExStyle |= 0x08000000;
+                return cp;
+            }
         }
 
         public void ShowPopup(IWin32Window owner, Point screenLocation, int minWidth)
@@ -58,6 +88,28 @@ namespace UIFramework.Controls
 
             if (owner != null) Show(owner); else Show();
             Activate();
+        }
+
+        /// <summary>
+        /// Zeigt an vorab berechneter Position und Größe — die Vermessung macht der
+        /// Aufrufer selbst (Menü-Controller: die Platzierung braucht die Größe VOR
+        /// dem Zeigen, und sie misst mit der DPI des Besitzer-Controls statt der
+        /// des ungezeigten Popups — dieselbe dokumentierte Mixed-DPI-Grenze wie
+        /// ShowPopup).
+        /// </summary>
+        public void ShowPopupAt(IWin32Window owner, Rectangle screenBounds)
+        {
+            // Handle ERST erzeugen, DANN Bounds setzen: Existiert das Handle noch
+            // nicht, wandert die Breite in CreateWindowEx, und Windows klemmt dort
+            // beim Erzeugen randlose, schmale Fenster auf seine System-Mindestbreite
+            // (SM_CXMIN, gemessen ~136px bei 96 dpi) — unabhängig vom Aktivierungs-
+            // Modus. Mit lebendem Handle läuft die Zuweisung stattdessen über
+            // SetWindowPos, das diese Klemme nicht kennt, und die vorab berechneten
+            // Bounds landen unverändert.
+            _ = Handle;
+            Bounds = screenBounds;
+            if (owner != null) Show(owner); else Show();
+            if (!_nonActivating) Activate();
         }
 
         public void ClosePopup()
@@ -91,6 +143,8 @@ namespace UIFramework.Controls
 
         protected override void OnDeactivate(EventArgs e)
         {
+            if (_nonActivating) { base.OnDeactivate(e); return; }
+
             base.OnDeactivate(e);
 
             // Close() HIER synchron aufzurufen zerreißt den WM_ACTIVATE-Handshake:
@@ -119,6 +173,11 @@ namespace UIFramework.Controls
         internal void RaiseDeactivateForTests()
         {
             OnDeactivate(EventArgs.Empty);
+        }
+
+        internal int ExStyleForTests
+        {
+            get { return CreateParams.ExStyle; }
         }
     }
 }

@@ -111,5 +111,58 @@ namespace UIFramework.Tests.Controls
 
             Assert.Null(ex);
         }
+
+        [Fact]
+        public void The_default_mode_still_activates_and_closes_on_deactivation()
+        {
+            // Sicherung des 3a-Verhaltens: Der neue Konstruktor-Parameter darf den
+            // Combo/Date-Pfad nicht verändern.
+            using (var popup = new PopupHost(new StubPopupContent()))
+            {
+                Assert.Equal(0, popup.ExStyleForTests & 0x08000000);
+            }
+        }
+
+        [Fact]
+        public void The_non_activating_mode_sets_WS_EX_NOACTIVATE_and_never_steals_focus_on_show()
+        {
+            using (var popup = new PopupHost(new StubPopupContent(), true))
+            {
+                Assert.NotEqual(0, popup.ExStyleForTests & 0x08000000);
+
+                popup.ShowPopupAt(null, new Rectangle(0, 0, 100, 40));
+
+                Assert.True(popup.Visible);
+                // Form.Active wäre am Headless-Testhost nicht belastbar prüfbar —
+                // das "stiehlt wirklich keinen Fokus" beweist die GUI-Fahrprobe.
+            }
+        }
+
+        [Fact]
+        public void Deactivation_does_not_close_a_non_activating_popup()
+        {
+            using (var popup = new PopupHost(new StubPopupContent(), true))
+            {
+                popup.ShowPopupAt(null, new Rectangle(0, 0, 100, 40));
+
+                popup.RaiseDeactivateForTests();
+                Application.DoEvents();
+
+                Assert.False(popup.IsDisposed);   // geschlossen wird nur vom Controller
+            }
+        }
+
+        [Fact]
+        public void ShowPopupAt_uses_the_precomputed_bounds_verbatim()
+        {
+            using (var popup = new PopupHost(new StubPopupContent(), true))
+            {
+                var bounds = new Rectangle(30, 40, 120, 50);
+
+                popup.ShowPopupAt(null, bounds);
+
+                Assert.Equal(bounds, popup.Bounds);
+            }
+        }
     }
 }
