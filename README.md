@@ -19,6 +19,10 @@ re-themes the whole UI, including the window's non-client title bar via DWM.
 - `SpinEdit`, `DateEdit` (with a drawn month calendar), `CheckEdit` — editors built on a shared
   `ButtonEditBase`: one native text core, a painted button zone, and a `PopupHost` anchor.
   Invalid input is filtered as you type and falls back silently on commit
+- `MenuBar` / `PopupMenu` — a skinned menu bar and context menu with submenus, separators,
+  check items, mnemonics (`&File`), app-wide shortcuts and full keyboard navigation. Menu
+  popups never take focus (`WS_EX_NOACTIVATE`): the focused control keeps its caret while
+  a menu is open, and the window title bar stays active
 - `GridControl` — virtualized grid built to stay smooth at a million rows, with sorting, filtering,
   column resize/reorder, keyboard navigation, and in-cell editing (F2, double click or type-to-edit;
   Tab moves on) that writes back through sorted and filtered views to the correct source row

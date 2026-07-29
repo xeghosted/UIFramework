@@ -82,20 +82,15 @@ namespace UIFramework.Demo
             // Textbedarf (SkinButton.GetPreferredSize) statt der festen 96×30-
             // Vorgabe. Ohne das schneidet der Text oberhalb von 96 dpi ab, weil
             // die feste Größe nicht mit der (korrekt skalierenden) Schrift wächst.
-            var toggleLight = new SkinButton { Text = "Heller Skin", AutoSize = true };
-            toggleLight.Click += (s, e) => SkinManager.Current = new LightSkin();
-            toggleLight.Location = new Point(16, 16);
-
-            var toggleDark = new SkinButton { Text = "Dunkler Skin", AutoSize = true };
-            toggleDark.Click += (s, e) => SkinManager.Current = new DarkSkin();
-            toggleDark.Location = new Point(toggleLight.Right + Gap, 16);
-
+            //
+            // Die Skin-Umschaltung (vormals toggleLight/toggleDark) ist ins
+            // Menü gewandert (Spec, Menüsystem) — geblieben ist als einzige
+            // Schaltfläche der ersten Reihe der bewusst deaktivierte Testknopf.
             var disabled = new SkinButton { Text = "Deaktiviert", AutoSize = true, Enabled = false };
-            disabled.Location = new Point(toggleDark.Right + Gap, 16);
+            disabled.Location = new Point(16, 16);
 
-            // Zeilenhöhe der ersten Reihe: die drei Schaltflächen können je nach
-            // Text und Skin-Zustand unterschiedlich hoch ausfallen.
-            int row1Bottom = Math.Max(toggleLight.Bottom, Math.Max(toggleDark.Bottom, disabled.Bottom));
+            // Zeilenhöhe der ersten Reihe: nur noch dieser eine Knopf bestimmt sie.
+            int row1Bottom = disabled.Bottom;
 
             var hoverMe = new SkinButton { Text = "Zeig mir Hover", AutoSize = true };
             hoverMe.Location = new Point(16, row1Bottom + RowGap);
@@ -127,8 +122,6 @@ namespace UIFramework.Demo
                 Dock = DockStyle.Top
             });
 
-            root.Controls.Add(toggleLight);
-            root.Controls.Add(toggleDark);
             root.Controls.Add(disabled);
             root.Controls.Add(hoverMe);
             root.Controls.Add(openGrid);
@@ -138,6 +131,57 @@ namespace UIFramework.Demo
             root.Controls.Add(nested);
 
             UpdateDpiLabel();
+
+            // Menüleiste als Dock=Top-Streifen ÜBER dem Dock=Fill-Inhalt: root
+            // (Fill) ist bereits oben zuerst zu Controls hinzugefügt worden,
+            // die Leiste kommt jetzt danach — exakt das Muster des 2b-Filter-
+            // streifens in GridForm (dort: grid zuerst, toolbar danach).
+            var menuBar = new MenuBar { Dock = DockStyle.Top };
+
+            var file = new MenuEntry("&Datei");
+            var openGridEntry = new MenuEntry("&Grid-Demo");
+            openGridEntry.Click += (s, e) => new GridForm().Show();
+            var openEditorsEntry = new MenuEntry("&Editoren");
+            openEditorsEntry.Click += (s, e) => new EditorForm().Show();
+            var quit = new MenuEntry("&Beenden") { Shortcut = Keys.Control | Keys.Q };
+            quit.Click += (s, e) => Close();
+            file.Items.Add(openGridEntry);
+            file.Items.Add(openEditorsEntry);
+            file.Items.Add(MenuEntry.Separator());
+            file.Items.Add(quit);
+
+            var view = new MenuEntry("&Ansicht");
+            var lightEntry = new MenuEntry("&Heller Skin") { CheckOnClick = true, Checked = true };
+            var darkEntry = new MenuEntry("&Dunkler Skin") { CheckOnClick = true };
+            lightEntry.Click += (s, e) =>
+            {
+                // Exklusivität ist App-Sache, kein Framework-Feature (kein RadioGroup-YAGNI).
+                lightEntry.Checked = true; darkEntry.Checked = false;
+                SkinManager.Current = new LightSkin();
+            };
+            darkEntry.Click += (s, e) =>
+            {
+                darkEntry.Checked = true; lightEntry.Checked = false;
+                SkinManager.Current = new DarkSkin();
+            };
+            view.Items.Add(lightEntry);
+            view.Items.Add(darkEntry);
+
+            var extras = new MenuEntry("E&xtras");
+            var nested2 = new MenuEntry("&Untermenü");
+            var deeper = new MenuEntry("&Tiefer");
+            deeper.Items.Add(new MenuEntry("Ebene &3a"));
+            deeper.Items.Add(new MenuEntry("Ebene 3&b"));
+            nested2.Items.Add(deeper);
+            nested2.Items.Add(new MenuEntry("Ebene &2"));
+            extras.Items.Add(nested2);
+            extras.Items.Add(new MenuEntry("&Gesperrt") { Enabled = false });
+
+            menuBar.Items.Add(file);
+            menuBar.Items.Add(view);
+            menuBar.Items.Add(extras);
+
+            Controls.Add(menuBar);
         }
 
         /// <summary>

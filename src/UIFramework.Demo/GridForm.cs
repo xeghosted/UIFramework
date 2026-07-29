@@ -33,6 +33,11 @@ namespace UIFramework.Demo
         private SortDirection _sortDirection = SortDirection.None;
         private string _filterText = "";
 
+        // Feld statt lokaler Variable: CopySelectedRow (Kontextmenü) braucht das
+        // Grid außerhalb des Konstruktors.
+        private readonly GridControl _grid;
+        private readonly PopupMenu _rowMenu = new PopupMenu();
+
         public GridForm()
         {
             AutoScaleDimensions = new SizeF(96F, 96F);
@@ -42,14 +47,14 @@ namespace UIFramework.Demo
             ClientSize = new Size(760, 460);
             StartPosition = FormStartPosition.CenterScreen;
 
-            var grid = new GridControl { Dock = DockStyle.Fill };
-            grid.Columns.Add(new GridColumn("Nummer", "Nr.") { Width = 70, ReadOnly = true });
-            grid.Columns.Add(new GridColumn("Name", "Name")
+            _grid = new GridControl { Dock = DockStyle.Fill };
+            _grid.Columns.Add(new GridColumn("Nummer", "Nr.") { Width = 70, ReadOnly = true });
+            _grid.Columns.Add(new GridColumn("Name", "Name")
             {
                 Width = 160,
                 EditorFactory = () => new SkinTextBox()
             });
-            grid.Columns.Add(new GridColumn("Ort", "Ort")
+            _grid.Columns.Add(new GridColumn("Ort", "Ort")
             {
                 Width = 140,
                 EditorFactory = () =>
@@ -60,13 +65,13 @@ namespace UIFramework.Demo
                     return combo;
                 }
             });
-            grid.Columns.Add(new GridColumn("Betrag", "Betrag")
+            _grid.Columns.Add(new GridColumn("Betrag", "Betrag")
             {
                 Width = 100,
                 // Betrag liegt 0..99,99 (i%10000/100) — die Grenzen sind die der Daten.
                 EditorFactory = () => new SpinEdit { MinValue = 0, MaxValue = 100, Increment = 1 }
             });
-            grid.Columns.Add(new GridColumn("Aktiv", "Aktiv")
+            _grid.Columns.Add(new GridColumn("Aktiv", "Aktiv")
             {
                 Width = 70,
                 EditorFactory = () => new CheckEdit { Text = "an" }
@@ -88,9 +93,29 @@ namespace UIFramework.Demo
             _baseSource.MapSet("Betrag", (z, v) => z.Betrag = (decimal)v);
             _baseSource.MapSet("Aktiv", (z, v) => z.Aktiv = (bool)v);
 
-            grid.HeaderClick += OnGridHeaderClick;
-            RebuildDataSource(grid);
-            Controls.Add(grid);
+            _grid.HeaderClick += OnGridHeaderClick;
+            RebuildDataSource(_grid);
+            Controls.Add(_grid);
+
+            // Kontextmenü am Grid: Zeile kopieren, Auswahl aufheben. Gleiche
+            // Konstruktion wie die Menüleiste in MainForm (Task 11), nur ohne
+            // Leiste — PopupMenu statt MenuBar.
+            var copyRow = new MenuEntry("Zeile &kopieren");
+            copyRow.Click += (s, e) => CopySelectedRow();
+            var clearSelection = new MenuEntry("Auswahl &aufheben");
+            // GridControl hat kein ClearSelection() (im Brief nur als Platzhalter
+            // genannt) — die echte API sitzt auf GridControl.Selection
+            // (GridSelection.Clear()), siehe GridSelection.cs.
+            clearSelection.Click += (s, e) => _grid.Selection.Clear();
+            _rowMenu.Items.Add(copyRow);
+            _rowMenu.Items.Add(MenuEntry.Separator());
+            _rowMenu.Items.Add(clearSelection);
+
+            _grid.MouseClick += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right)
+                    _rowMenu.Show(_grid, _grid.PointToScreen(e.Location));
+            };
 
             // Dock=Top statt einer festen Location: Ein absolut plaziertern
             // Knopf ueber dem Dock=Fill-Grid verdeckte sonst dauerhaft dessen
@@ -112,10 +137,44 @@ namespace UIFramework.Demo
             {
                 if (_filterText == filterBox.Text) return;
                 _filterText = filterBox.Text;
-                RebuildDataSource(grid);
+                RebuildDataSource(_grid);
             };
             toolbar.Controls.Add(filterBox);
             Controls.Add(toolbar);
+        }
+
+        /// <summary>
+        /// Kopiert die Zellwerte der selektierten Zeile Tab-getrennt in die
+        /// Zwischenablage — Spaltenreihenfolge wie im Grid sichtbar. Über die
+        /// echte Selektion-API geprüft (GridSelection.IsSelected), nicht nur
+        /// CurrentRow: Nach einem Strg-Klick, der die zuletzt berührte Zeile
+        /// gerade ABwählt, zeigt CurrentRow noch auf sie, obwohl sie nicht
+        /// mehr ausgewählt ist (siehe GridSelection.Toggle) — ohne die Prüfung
+        /// kopierte das eine bereits abgewählte Zeile.
+        /// </summary>
+        private void CopySelectedRow()
+        {
+            int row = _grid.Selection.CurrentRow;
+            if (row < 0 || !_grid.Selection.IsSelected(row)) return;
+
+            var source = _grid.DataSource;
+            if (source == null) return;
+
+            var columns = _grid.Columns;
+            var values = new string[columns.Count];
+            for (int c = 0; c < columns.Count; c++)
+            {
+                object value = source.GetValue(row, columns[c].Key);
+                values[c] = value == null ? "" : value.ToString();
+            }
+
+            Clipboard.SetText(string.Join("\t", values));
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _rowMenu.Dispose();
+            base.Dispose(disposing);
         }
 
         private static List<Zeile> BuildRows(int count)
