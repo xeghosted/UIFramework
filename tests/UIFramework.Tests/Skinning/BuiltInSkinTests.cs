@@ -28,6 +28,8 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday,
                 ElementKeys.MenuBar, ElementKeys.MenuBarItem, ElementKeys.MenuPopup,
                 ElementKeys.MenuItem, ElementKeys.MenuSeparator,
+                ElementKeys.Ribbon, ElementKeys.RibbonTabHeader, ElementKeys.RibbonGroup,
+                ElementKeys.RibbonButton, ElementKeys.RibbonSeparator,
             };
             ElementState[] states =
             {
@@ -62,6 +64,8 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday,
                 ElementKeys.MenuBar, ElementKeys.MenuBarItem, ElementKeys.MenuPopup,
                 ElementKeys.MenuItem, ElementKeys.MenuSeparator,
+                ElementKeys.Ribbon, ElementKeys.RibbonTabHeader, ElementKeys.RibbonGroup,
+                ElementKeys.RibbonButton, ElementKeys.RibbonSeparator,
             };
 
             foreach (var element in elements)
@@ -251,6 +255,21 @@ namespace UIFramework.Tests.Skinning
 
                 Assert.True(distance > 0.2f,
                     skin.Name + "/MenuItem/" + state + ": Text " + appearance.ForeColor +
+                    " auf " + appearance.Background + " (Abstand " + distance + ").");
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void Ribbon_tab_text_reads_in_normal_and_selected_state(ISkin skin)
+        {
+            foreach (var state in new[] { ElementState.Normal, ElementState.Selected })
+            {
+                var appearance = skin.GetAppearance(ElementKeys.RibbonTabHeader, state);
+                float distance = Math.Abs(
+                    appearance.ForeColor.GetBrightness() - appearance.Background.GetBrightness());
+                Assert.True(distance > 0.2f,
+                    skin.Name + "/RibbonTabHeader/" + state + ": Text " + appearance.ForeColor +
                     " auf " + appearance.Background + " (Abstand " + distance + ").");
             }
         }

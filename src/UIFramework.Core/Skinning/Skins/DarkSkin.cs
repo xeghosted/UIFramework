@@ -43,6 +43,7 @@ namespace UIFramework.Core.Skinning.Skins
             DefineCheckBox();
             DefineCalendar();
             DefineMenu();
+            DefineRibbon();
         }
 
         private void DefineButton()
@@ -843,6 +844,96 @@ namespace UIFramework.Core.Skinning.Skins
                 ForeColor = TextPrimary,
                 Font = BodyFont,
                 Padding = new Padding(8, 3, 8, 3)
+            });
+        }
+
+        private void DefineRibbon()
+        {
+            // Fläche wie die Menüleiste: verschmilzt mit dem Fenster darunter
+            // (siehe DefinePanel — der Grundton dort ist SurfaceRaised).
+            Define(ElementKeys.Ribbon, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised, BorderColor = Color.Transparent, BorderWidth = 0,
+                Corners = CornerRadius.None, ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(6, 2, 6, 4)
+            });
+
+            Define(ElementKeys.RibbonTabHeader, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised, BorderColor = Color.Transparent, BorderWidth = 0,
+                Corners = new CornerRadius(3), ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(12, 4, 12, 4)
+            });
+            Define(ElementKeys.RibbonTabHeader, ElementState.Hovered, new ElementAppearance
+            {
+                Background = BorderSubtle, BorderColor = Color.Transparent, BorderWidth = 0,
+                Corners = new CornerRadius(3), ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(12, 4, 12, 4)
+            });
+            // Selected: im Dunkeln ist „offen" die DUNKLERE Fläche — DisabledFill
+            // als abgesenkter Ton, dasselbe Idiom wie MenuBarItem/Selected.
+            Define(ElementKeys.RibbonTabHeader, ElementState.Selected, new ElementAppearance
+            {
+                Background = DisabledFill, BorderColor = BorderStrong, BorderWidth = 1,
+                Corners = new CornerRadius(3), ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(12, 4, 12, 4)
+            });
+            Define(ElementKeys.RibbonTabHeader, ElementState.Disabled, new ElementAppearance
+            {
+                Background = SurfaceRaised, BorderColor = Color.Transparent, BorderWidth = 0,
+                Corners = new CornerRadius(3), ForeColor = TextDisabled, Font = BodyFont,
+                Padding = new Padding(12, 4, 12, 4)
+            });
+
+            // Titeltext bewusst gedämpft (TextDisabled als Ton, nicht als Zustand):
+            // der Gruppentitel ist Beschriftung. Gruppen kennen in v1 kein Disabled.
+            Define(ElementKeys.RibbonGroup, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised, BorderColor = BorderSubtle, BorderWidth = 1,
+                Corners = new CornerRadius(4), ForeColor = TextDisabled, Font = BodyFont,
+                Padding = new Padding(4)
+            });
+
+            Define(ElementKeys.RibbonButton, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised, BorderColor = Color.Transparent, BorderWidth = 0,
+                Corners = new CornerRadius(3), ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+            Define(ElementKeys.RibbonButton, ElementState.Hovered, new ElementAppearance
+            {
+                Background = DisabledFill, BorderColor = BorderStrong, BorderWidth = 1,
+                Corners = new CornerRadius(3), ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+            // Text-auf-Accent nutzt das bestehende Dark-Idiom aus DefineButton
+            // (rohes Weiß statt TextPrimary).
+            Define(ElementKeys.RibbonButton, ElementState.Pressed, new ElementAppearance
+            {
+                Background = Accent, BorderColor = Accent, BorderWidth = 1,
+                Corners = new CornerRadius(3), ForeColor = Color.FromArgb(255, 255, 255, 255), Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+            // Selected = Checked: ruhige Fläche mit Accent-Kontur — gedrückt sieht
+            // anders aus (volle Accent-Fläche), die zwei Zustände bleiben unterscheidbar.
+            Define(ElementKeys.RibbonButton, ElementState.Selected, new ElementAppearance
+            {
+                Background = DisabledFill, BorderColor = Accent, BorderWidth = 1,
+                Corners = new CornerRadius(3), ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+            Define(ElementKeys.RibbonButton, ElementState.Disabled, new ElementAppearance
+            {
+                Background = SurfaceRaised, BorderColor = Color.Transparent, BorderWidth = 0,
+                Corners = new CornerRadius(3), ForeColor = TextDisabled, Font = BodyFont,
+                Padding = new Padding(6, 4, 6, 4)
+            });
+
+            Define(ElementKeys.RibbonSeparator, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised, BorderColor = BorderSubtle, BorderWidth = 1,
+                Corners = CornerRadius.None, ForeColor = TextPrimary, Font = BodyFont,
+                Padding = new Padding(3, 4, 3, 4)
             });
         }
     }

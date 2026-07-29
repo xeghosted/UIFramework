@@ -108,5 +108,26 @@ namespace UIFramework.Core.Skinning
         /// die Linie, Padding der horizontale Einzug, die Höhe der Zeile folgt aus
         /// dem vertikalen Padding (InflateByPadding über einer leeren Größe).</summary>
         public const string MenuSeparator = "MenuSeparator";
+
+        /// <summary>Die Gesamtfläche des Ribbons (Tab-Zeile + Gruppenfläche).</summary>
+        public const string Ribbon = "Ribbon";
+
+        /// <summary>Ein Tab-Reiter des Ribbons. Selected = sein Blatt ist sichtbar.
+        /// Eigener Schlüssel neben Tab: Ribbon-Reiter und TabControl-Reiter sollen
+        /// im Skin-Editor (Teilprojekt 6) unabhängig gestaltbar sein.</summary>
+        public const string RibbonTabHeader = "RibbonTabHeader";
+
+        /// <summary>Gruppenrahmen und Titelzeile; ForeColor ist der Titeltext —
+        /// bewusst gedämpft definiert (der Titel ist Beschriftung, kein Inhalt).</summary>
+        public const string RibbonGroup = "RibbonGroup";
+
+        /// <summary>Ein Knopf im Ribbon (groß wie klein). Selected = Checked eines
+        /// ToggleButtons. Flach wie EditorButton: Fläche erst bei Hover.</summary>
+        public const string RibbonButton = "RibbonButton";
+
+        /// <summary>Die SENKRECHTE Trennlinie zwischen Item-Spalten — nach
+        /// MenuSeparator der zweite Linien-Schlüssel (BorderColor/Width = Linie,
+        /// Padding oben/unten = Einzug).</summary>
+        public const string RibbonSeparator = "RibbonSeparator";
     }
 }
