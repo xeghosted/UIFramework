@@ -109,6 +109,72 @@ namespace UIFramework.Controls
             }
         }
 
+        /// <summary>
+        /// Fahrprobe-Befund F1: DockStyle.Top übernimmt beim Layout die aktuelle
+        /// Height 1:1 — GetPreferredSize wird dabei NUR konsultiert, wenn das
+        /// Control AutoSize=true trägt (das hier bewusst nicht gesetzt ist, siehe
+        /// GetPreferredSize-Kommentar: die Breite bleibt Elternvorgabe, ein
+        /// AutoSize-Control würde WinForms aber auch die Breite selbst bestimmen
+        /// lassen wollen). Ohne eigene Höhenverwaltung bleibt Height auf
+        /// Control.DefaultSize stehen, und Dock=Top zeigt einen 0 px hohen
+        /// Streifen (am echten Fenster bei 120 dpi vermessen: 700×0). Die Leiste
+        /// setzt ihre Höhe deshalb selbst — an drei Stellen, s.u.
+        /// </summary>
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+
+            // Frühestmöglicher zuverlässiger Zeitpunkt: DeviceDpi ist beim
+            // Erzeugen des Fensterhandles bereits der echte Wert des
+            // Zielmonitors (anders als im Konstruktor, wo er noch die
+            // Design-/Thread-Vorgabe trägt).
+            ApplyPreferredHeight();
+        }
+
+        protected override void OnDpiChangedAfterParent(EventArgs e)
+        {
+            // Monitorwechsel zur Laufzeit ändert die Schriftgröße des Skins und
+            // damit den Höhenbedarf — vor dem Invalidate() der Basisklasse
+            // (SkinnedControl), damit das erste Repaint schon mit der neuen
+            // Höhe zeichnet.
+            ApplyPreferredHeight();
+            base.OnDpiChangedAfterParent(e);
+        }
+
+        protected override void OnLayout(LayoutEventArgs levent)
+        {
+            base.OnLayout(levent);
+
+            // Selbstheilende Bremse gegen Doppel-Skalierung: MainForm.OnLoad
+            // ruft Scale(factor) auf ALLEN Kindern auf (siehe Kommentar dort),
+            // was eine bereits bei echtem DeviceDpi korrekt gesetzte Height
+            // (siehe OnHandleCreated) ein zweites Mal multiplizieren würde —
+            // ein Skin-Wechsel mit anderer Schrift/anderem Padding braucht
+            // ebenfalls ein Nachziehen. Empirisch nachvollzogen (Diagnose-Probe
+            // gegen ein echtes Form): Control.Scale(SizeF) löst intern über
+            // Suspend-/ResumeLayout selbst genau einen OnLayout-Durchlauf auf
+            // dem skalierten Control aus — diese Bremse hier reicht deshalb
+            // aus, ohne eigenen Scale()/ScaleControl()-Override. Der
+            // Gleichheitstest in ApplyPreferredHeight ist zugleich die
+            // Konvergenzbedingung: eine zweite, durch diese Zuweisung selbst
+            // ausgelöste Runde trifft den Zielwert bereits und bleibt aus —
+            // keine Endlosschleife (Muster: SkinnedForm.ApplyCaptionIfChanged).
+            ApplyPreferredHeight();
+        }
+
+        /// <summary>
+        /// Setzt NUR die Höhe neu (nie Size als Ganzes — die Breite bleibt
+        /// Elternvorgabe, siehe GetPreferredSize) und nur, wenn sie vom
+        /// aktuellen Bedarf abweicht. Diese Bedingung ist die Bremse gegen
+        /// Endlosschleifen bei den Aufrufern und macht wiederholte Aufrufe
+        /// (OnHandleCreated, OnDpiChangedAfterParent, OnLayout) no-op-sicher.
+        /// </summary>
+        private void ApplyPreferredHeight()
+        {
+            int preferred = GetPreferredSize(Size.Empty).Height;
+            if (Height != preferred) Height = preferred;
+        }
+
         protected override void OnMouseMove(MouseEventArgs e)
         {
             int hit = HitTest(e.Location);

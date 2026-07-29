@@ -130,5 +130,75 @@ namespace UIFramework.Tests.Menus
                 Assert.False(bar.ProcessShortcut(Keys.Control | Keys.F12));
             }
         }
+
+        // ---- Fahrprobe-Befund F1: intrinsische Höhe -------------------------
+        //
+        // Ohne AutoSize konsultiert Dock=Top niemals GetPreferredSize — die
+        // Leiste rendert als 0 px hoher Streifen (am echten Fenster bei 120 dpi
+        // vermessen: 700×0), weil weder MenuBar noch ein Konsument je eine
+        // Height setzt. Die drei Tests unten belegen, dass die Leiste ihre
+        // Höhe selbst verwaltet: einmalig beim Erzeugen des Fensterhandles
+        // (dort ist DeviceDpi bereits echt), selbstheilend nach jedem Layout-
+        // Durchlauf (Bremse gegen die Doppel-Skalierung aus MainForm.OnLoad,
+        // siehe dortigen Kommentar) und im Zusammenspiel mit einem echten
+        // Dock=Top/Dock=Fill-Elternteil.
+
+        [Fact]
+        public void A_fresh_bar_gets_its_intrinsic_height_from_the_skin_on_handle_creation()
+        {
+            using (var bar = new MenuBar())
+            {
+                bar.CreateControl();
+
+                int preferred = bar.GetPreferredSize(Size.Empty).Height;
+
+                Assert.True(preferred > 0);
+                Assert.Equal(preferred, bar.Height);
+            }
+        }
+
+        [Fact]
+        public void Scaling_the_bar_converges_back_to_the_preferred_height_after_a_forced_layout()
+        {
+            // Muster: der Scale()-Test in GridScrollingTests
+            // ("Form_scaling_leaves_the_bars_where_the_grid_put_them") — Scale()
+            // ist derselbe Codepfad wie MainForm.OnLoads Doppel-Skalierungsgefahr,
+            // aber DPI-unabhängig aufrufbar, sodass der 96-dpi-Testlauf den
+            // 120-dpi-Fehler sieht. PerformLayout() erzwingt hier zusätzlich
+            // genau den Durchlauf, den die selbstheilende Bremse abfängt.
+            using (var bar = new MenuBar())
+            {
+                bar.CreateControl();
+                int preferred = bar.GetPreferredSize(Size.Empty).Height;
+
+                bar.Scale(new SizeF(1.25f, 1.25f));
+                bar.PerformLayout();
+
+                Assert.Equal(preferred, bar.Height);
+            }
+        }
+
+        [Fact]
+        public void Docked_at_the_top_the_bar_claims_exactly_its_preferred_height_and_the_panel_gets_the_rest()
+        {
+            // Muster: MainForm — ein Dock=Fill-Panel zuerst zu Controls
+            // hinzugefügt, die Dock=Top-Leiste danach (siehe dortigen
+            // Kommentar zum 2b-Filterstreifen-Muster in GridForm).
+            using (var host = new Form { ShowInTaskbar = false, ClientSize = new Size(500, 300) })
+            {
+                var panel = new SkinPanel { Dock = DockStyle.Fill };
+                host.Controls.Add(panel);
+
+                var bar = new MenuBar { Dock = DockStyle.Top };
+                host.Controls.Add(bar);
+
+                host.Show();
+
+                int preferred = bar.GetPreferredSize(Size.Empty).Height;
+
+                Assert.Equal(preferred, bar.Height);
+                Assert.Equal(host.ClientSize.Height - preferred, panel.Height);
+            }
+        }
     }
 }
