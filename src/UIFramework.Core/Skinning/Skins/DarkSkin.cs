@@ -42,6 +42,7 @@ namespace UIFramework.Core.Skinning.Skins
             DefineEditorButton();
             DefineCheckBox();
             DefineCalendar();
+            DefineMenu();
         }
 
         private void DefineButton()
@@ -716,6 +717,132 @@ namespace UIFramework.Core.Skinning.Skins
                 ForeColor = AccentHover,
                 Font = BodyFont,
                 Padding = new Padding(4)
+            });
+        }
+
+        private void DefineMenu()
+        {
+            // Die Leiste verschmilzt mit der Fläche darunter — wie die Titelleiste
+            // (Window nutzt denselben Ton, siehe DefinePanel). Kein Rahmen: Der
+            // Streifen grenzt sich durch die Popups und Hover-Flächen ab, nicht
+            // durch eine Linie.
+            Define(ElementKeys.MenuBar, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(4, 2, 4, 2)
+            });
+
+            Define(ElementKeys.MenuBarItem, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(10, 4, 10, 4)
+            });
+
+            Define(ElementKeys.MenuBarItem, ElementState.Hovered, new ElementAppearance
+            {
+                Background = BorderSubtle,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(10, 4, 10, 4)
+            });
+
+            // Selected = Dropdown offen. Im Dunkeln ist „gedrückt/offen" die
+            // DUNKLERE Fläche — DisabledFill als abgesenkter Ton (Idiom, keine
+            // Aussage über Deaktiviertheit).
+            Define(ElementKeys.MenuBarItem, ElementState.Selected, new ElementAppearance
+            {
+                Background = DisabledFill,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(10, 4, 10, 4)
+            });
+
+            Define(ElementKeys.MenuBarItem, ElementState.Disabled, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(10, 4, 10, 4)
+            });
+
+            // Popup-Rahmen wie ComboBoxList — dasselbe "aufgeklappte Fläche"-Idiom.
+            // Padding(2): der Einzug der Einträge gegenüber dem Rahmen.
+            Define(ElementKeys.MenuPopup, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderStrong,
+                BorderWidth = 1,
+                Corners = new CornerRadius(4),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(2)
+            });
+
+            Define(ElementKeys.MenuItem, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            // Maus-Hover UND Tastatur-Auswahl — Accent-Hervorhebung wie GridCell/Selected.
+            // Text-auf-Accent nutzt das bestehende Dark-Idiom aus DefineButton.
+            Define(ElementKeys.MenuItem, ElementState.Hovered, new ElementAppearance
+            {
+                Background = Accent,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = Color.FromArgb(255, 255, 255, 255),
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            Define(ElementKeys.MenuItem, ElementState.Disabled, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = Color.Transparent,
+                BorderWidth = 0,
+                Corners = new CornerRadius(3),
+                ForeColor = TextDisabled,
+                Font = BodyFont,
+                Padding = new Padding(8, 4, 8, 4)
+            });
+
+            // BorderColor/Width ist die Linie selbst (DrawSeparatorLine), Padding
+            // links/rechts der Einzug, oben/unten die halbe Zeilenhöhe.
+            Define(ElementKeys.MenuSeparator, ElementState.Normal, new ElementAppearance
+            {
+                Background = SurfaceRaised,
+                BorderColor = BorderSubtle,
+                BorderWidth = 1,
+                Corners = CornerRadius.None,
+                ForeColor = TextPrimary,
+                Font = BodyFont,
+                Padding = new Padding(8, 3, 8, 3)
             });
         }
     }

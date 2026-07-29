@@ -87,5 +87,26 @@ namespace UIFramework.Core.Skinning
 
         /// <summary>Die Heute-Zeile unter dem Monatsblatt.</summary>
         public const string CalendarToday = "CalendarToday";
+
+        /// <summary>Die Fläche der Menüleiste (der Streifen unter der Titelleiste).</summary>
+        public const string MenuBar = "MenuBar";
+
+        /// <summary>Ein Top-Level-Eintrag in der Menüleiste. Selected = sein Dropdown
+        /// ist offen (nicht "angehakt" — Haken gibt es nur bei MenuItem).</summary>
+        public const string MenuBarItem = "MenuBarItem";
+
+        /// <summary>Rahmen und Fläche eines aufgeklappten Menü-Popups. Die Einträge
+        /// darin nutzen ElementKeys.MenuItem.</summary>
+        public const string MenuPopup = "MenuPopup";
+
+        /// <summary>Ein Eintrag in einem Menü-Popup. Hovered ist zugleich die
+        /// Tastatur-Auswahl — Menüs kennen nur EINE Hervorhebung. Haken und
+        /// Untermenü-Pfeil nutzen ForeColor, der Shortcut-Text ebenfalls.</summary>
+        public const string MenuItem = "MenuItem";
+
+        /// <summary>Die Trennlinie in einem Menü-Popup: BorderColor/BorderWidth ist
+        /// die Linie, Padding der horizontale Einzug, die Höhe der Zeile folgt aus
+        /// dem vertikalen Padding (InflateByPadding über einer leeren Größe).</summary>
+        public const string MenuSeparator = "MenuSeparator";
     }
 }

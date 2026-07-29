@@ -25,7 +25,9 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
                 ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab,
                 ElementKeys.EditorButton, ElementKeys.CheckBox, ElementKeys.CheckBoxIndicator,
-                ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday
+                ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday,
+                ElementKeys.MenuBar, ElementKeys.MenuBarItem, ElementKeys.MenuPopup,
+                ElementKeys.MenuItem, ElementKeys.MenuSeparator,
             };
             ElementState[] states =
             {
@@ -57,7 +59,9 @@ namespace UIFramework.Tests.Skinning
                 ElementKeys.ScrollBar, ElementKeys.ScrollBarThumb,
                 ElementKeys.TextBox, ElementKeys.ComboBox, ElementKeys.Tab,
                 ElementKeys.EditorButton, ElementKeys.CheckBox, ElementKeys.CheckBoxIndicator,
-                ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday
+                ElementKeys.CalendarDay, ElementKeys.CalendarHeader, ElementKeys.CalendarToday,
+                ElementKeys.MenuBar, ElementKeys.MenuBarItem, ElementKeys.MenuPopup,
+                ElementKeys.MenuItem, ElementKeys.MenuSeparator,
             };
 
             foreach (var element in elements)
@@ -230,6 +234,25 @@ namespace UIFramework.Tests.Skinning
             Assert.NotSame(SkinBase.FallbackAppearance, indicator);
             Assert.True(indicator.BorderWidth >= 1,
                 skin.Name + ": CheckBoxIndicator/Normal sollte weiterhin einen Rahmen haben.");
+        }
+
+        [Theory]
+        [MemberData(nameof(AllSkins))]
+        public void Menu_item_text_reads_in_normal_and_hovered_state(ISkin skin)
+        {
+            // Hovered ist bei Menüs der EINE Hervorhebungszustand (Maus UND
+            // Tastatur-Auswahl teilen ihn) — unlesbar hieße: blindes Navigieren.
+            foreach (var state in new[] { ElementState.Normal, ElementState.Hovered })
+            {
+                var appearance = skin.GetAppearance(ElementKeys.MenuItem, state);
+
+                float distance = Math.Abs(
+                    appearance.ForeColor.GetBrightness() - appearance.Background.GetBrightness());
+
+                Assert.True(distance > 0.2f,
+                    skin.Name + "/MenuItem/" + state + ": Text " + appearance.ForeColor +
+                    " auf " + appearance.Background + " (Abstand " + distance + ").");
+            }
         }
     }
 }
