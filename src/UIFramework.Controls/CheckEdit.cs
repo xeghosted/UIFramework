@@ -104,6 +104,11 @@ namespace UIFramework.Controls
             // Kein Textkern — Lostippen verpufft hier bewusst (Plan-Entscheidung 4).
         }
 
+        void IGridCellEditor.FocusEditor()
+        {
+            Focus();
+        }
+
         event EventHandler IGridCellEditor.ConfirmRequested
         {
             add { EditConfirmed += value; }

@@ -517,6 +517,20 @@ namespace UIFramework.Controls
             InnerTextBox.SelectionStart = InnerTextBox.TextLength;
         }
 
+        void IGridCellEditor.FocusEditor()
+        {
+            FocusEditorCore();
+        }
+
+        /// <summary>Der Kern nimmt den Fokus, wenn es einen gibt (Text, Caret,
+        /// Enter/Escape hängen dort); ohne Kern ist das Control selbst
+        /// fokussierbar (SkinComboBox: Selectable=true, TabStop=true).</summary>
+        protected virtual void FocusEditorCore()
+        {
+            if (InnerTextBox != null) InnerTextBox.Focus();
+            else Focus();
+        }
+
         event EventHandler IGridCellEditor.ConfirmRequested
         {
             add { EditConfirmed += value; }
@@ -604,6 +618,13 @@ namespace UIFramework.Controls
         internal Rectangle InnerTextBoxForTestsBounds()
         {
             return _inner.Bounds;
+        }
+
+        /// <summary>Nur für Tests: das Control, das FocusEditorCore ansprechen
+        /// würde — Fokus selbst ist kopflos nicht prüfbar.</summary>
+        internal Control FocusTargetForTests()
+        {
+            return InnerTextBox != null ? (Control)InnerTextBox : this;
         }
     }
 }

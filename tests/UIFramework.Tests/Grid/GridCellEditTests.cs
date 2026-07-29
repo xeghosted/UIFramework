@@ -52,6 +52,23 @@ namespace UIFramework.Tests.Grid
             public object GetValue(int rowIndex, string columnKey) { return "r" + rowIndex; }
         }
 
+        /// <summary>Zählt FocusEditor()-Aufrufe, liefert sonst ein echtes
+        /// SkinTextBox-Control — für den Beweis, dass BeginEdit den Fokus über
+        /// den Vertrag holt statt per Control.Focus()-Heuristik (Befund G1).
+        /// ConfirmRequested/CancelRequested bleiben ungenutzt: leere
+        /// add/remove-Accessoren statt Feld-Events, sonst warnt CS0067.</summary>
+        private sealed class CountingEditor : IGridCellEditor
+        {
+            private readonly SkinTextBox _control = new SkinTextBox();
+            public int FocusCalls;
+            public Control EditorControl { get { return _control; } }
+            public object EditValue { get { return _control.Text; } set { _control.Text = value == null ? "" : value.ToString(); } }
+            public void BeginWith(string text) { _control.Text = text ?? ""; }
+            public void FocusEditor() { FocusCalls++; }
+            public event EventHandler ConfirmRequested { add { } remove { } }
+            public event EventHandler CancelRequested { add { } remove { } }
+        }
+
         private static GridControl Grid(IGridDataSource source)
         {
             var grid = new GridControl();
@@ -78,6 +95,21 @@ namespace UIFramework.Tests.Grid
                 Assert.Equal("P2", editor.EditValue);
                 Assert.Equal(grid.CellBounds(2, 0), editor.EditorControl.Bounds);
                 Assert.Contains(editor.EditorControl, grid.Controls.Cast<System.Windows.Forms.Control>());
+            }
+        }
+
+        [Fact]
+        public void BeginEdit_focuses_the_editor_through_the_contract_exactly_once()
+        {
+            var people = People(5);
+            using (var grid = Grid(Writable(people)))
+            {
+                var counting = new CountingEditor();
+                grid.Columns[0].EditorFactory = () => counting;
+
+                grid.BeginEdit(1, 0);
+
+                Assert.Equal(1, counting.FocusCalls);
             }
         }
 

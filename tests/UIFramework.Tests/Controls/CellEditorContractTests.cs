@@ -148,5 +148,32 @@ namespace UIFramework.Tests.Controls
                 Assert.Equal(1, cancelled);
             }
         }
+
+        [Fact]
+        public void Text_bearing_editors_focus_their_native_core_while_core_less_editors_focus_themselves()
+        {
+            using (var edit = new SkinTextBox())
+            using (var spin = new SpinEdit())
+            using (var date = new DateEdit())
+            using (var combo = new SkinComboBox())
+            using (var check = new CheckEdit())
+            {
+                Assert.NotSame(edit, edit.FocusTargetForTests());
+                Assert.IsType<TextBox>(edit.FocusTargetForTests());
+
+                Assert.NotSame(spin, spin.FocusTargetForTests());
+                Assert.IsType<TextBox>(spin.FocusTargetForTests());
+
+                Assert.NotSame(date, date.FocusTargetForTests());
+                Assert.IsType<TextBox>(date.FocusTargetForTests());
+
+                Assert.Same(combo, combo.FocusTargetForTests());
+
+                // CheckEdit hat keine FocusTargetForTests-Naht (kein Textkern) —
+                // hier genügt, dass FocusEditor() kopflos ohne Wurf durchläuft.
+                ((IGridCellEditor)check).FocusEditor();
+                Assert.False(check.Focused);
+            }
+        }
     }
 }

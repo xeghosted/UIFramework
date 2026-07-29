@@ -570,9 +570,11 @@ namespace UIFramework.Grid
             Controls.Add(control);
             control.BringToFront();       // über den Leisten-Geschwistern
 
-            // Kern-Editoren sind selbst nicht fokussierbar — dort übernimmt das
-            // erste fokussierbare Kind (der native Kern) per SelectNextControl.
-            if (!control.Focus()) control.SelectNextControl(null, true, true, true, false);
+            // Fokus über den Vertrag, nicht per Heuristik: Ein Focus() auf das äußere
+            // Control eines Editors mit nativem Textkern GELINGT, lässt die Tastatur
+            // aber ins Leere laufen — der Editor allein weiß, welches Fenster
+            // Eingaben entgegennimmt (Befund G1, am Fenster gefunden).
+            editor.FocusEditor();
         }
 
         public void CommitEdit()
