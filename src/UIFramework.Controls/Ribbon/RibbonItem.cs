@@ -18,7 +18,7 @@ namespace UIFramework.Controls
         /// <summary>Schalter mit Dropdown-Menü.</summary>
         DropDownButton,
 
-        /// <summary>Trennlinie (interaktiv).</summary>
+        /// <summary>Trennlinie — nie interaktiv.</summary>
         Separator
     }
 
