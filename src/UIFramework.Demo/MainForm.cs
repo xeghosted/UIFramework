@@ -143,10 +143,13 @@ namespace UIFramework.Demo
             openGridEntry.Click += (s, e) => new GridForm().Show();
             var openEditorsEntry = new MenuEntry("&Editoren");
             openEditorsEntry.Click += (s, e) => new EditorForm().Show();
+            var openRibbonEntry = new MenuEntry("&Ribbon-Demo");
+            openRibbonEntry.Click += (s, e) => new RibbonForm().Show();
             var quit = new MenuEntry("&Beenden") { Shortcut = Keys.Control | Keys.Q };
             quit.Click += (s, e) => Close();
             file.Items.Add(openGridEntry);
             file.Items.Add(openEditorsEntry);
+            file.Items.Add(openRibbonEntry);
             file.Items.Add(MenuEntry.Separator());
             file.Items.Add(quit);
 

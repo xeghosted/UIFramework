@@ -23,6 +23,9 @@ re-themes the whole UI, including the window's non-client title bar via DWM.
   check items, mnemonics (`&File`), app-wide shortcuts and full keyboard navigation. Menu
   popups never take focus (`WS_EX_NOACTIVATE`): the focused control keeps its caret while
   a menu is open, and the window title bar stays active
+- `RibbonControl` — a skinned ribbon with tabs, groups, large/small image buttons, toggle and
+  dropdown buttons (dropdowns are regular menu popups). Painted element-wise, never steals
+  focus, sizes itself from the skin's font metrics
 - `GridControl` — virtualized grid built to stay smooth at a million rows, with sorting, filtering,
   column resize/reorder, keyboard navigation, and in-cell editing (F2, double click or type-to-edit;
   Tab moves on) that writes back through sorted and filtered views to the correct source row
