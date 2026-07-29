@@ -92,7 +92,18 @@ namespace UIFramework.Controls
             {
                 int before = SelectedTabIndex;
                 _selectedTabIndex = value;
-                if (SelectedTabIndex != before) Invalidate();
+                if (SelectedTabIndex != before)
+                {
+                    // Stale Hover nach Tab-Wechsel vermeiden (Mitnahme-Fund
+                    // Abschluss-Review): ein Hover-Item/-Tab aus der alten
+                    // Auswahl bleibt sonst bis zur nächsten Mausbewegung
+                    // optisch "hängen", obwohl der Tab-Wechsel selbst schon
+                    // von woanders (z. B. Tastatur/App-Code) ausgelöst sein
+                    // kann, ohne dass die Maus sich je bewegt hätte.
+                    _hoverTabIndex = -1;
+                    _hoverItem = null;
+                    Invalidate();
+                }
             }
         }
 
@@ -441,7 +452,7 @@ namespace UIFramework.Controls
             SkinPainter.DrawBackground(g, bounds, itemAppearance, dpi);
             SkinPainter.DrawBorder(g, bounds, itemAppearance, dpi);
 
-            var inner = SkinPainter.GetContentRectangle(bounds, itemAppearance, dpi);
+            var inner = InnerZone(bounds, metrics, dpi);
 
             // Dieselben hasImage/hasText wie in BuildBox — die Box wurde
             // bereits ohne die fehlende Zone gemessen, der Malpfad muss ihr
@@ -504,6 +515,23 @@ namespace UIFramework.Controls
         }
 
         /// <summary>
+        /// Innenzone eines gemalten Items — IMMER aus der Normal-Button-
+        /// Erscheinung der Metrik abgeleitet (Muster MenuBar.PaintContent,
+        /// "Messen IMMER mit Normal"), NIE aus der Zustands-Erscheinung des
+        /// Items: Hovered/Pressed/Selected tragen in der Skin-Tabelle eine
+        /// BorderWidth von 1, Normal/Disabled 0. Käme inner aus itemAppearance
+        /// (Abschluss-Review-Fund), säße der Inhalt eines gecheckten
+        /// ToggleButtons dauerhaft um die Rahmenbreite versetzt, und bei
+        /// Hover/Press zappelte er zusätzlich bei jedem Zustandswechsel.
+        /// Hintergrund/Rahmen/Textfarben bleiben bewusst zustandsabhängig
+        /// (itemAppearance in PaintItem) — nur die GEOMETRIE ist fix.
+        /// </summary>
+        private static Rectangle InnerZone(Rectangle bounds, RibbonMetrics metrics, int dpi)
+        {
+            return SkinPainter.GetContentRectangle(bounds, metrics.ButtonAppearance, dpi);
+        }
+
+        /// <summary>
         /// Rangfolge wie überall im Framework (Disabled &gt; Pressed &gt;
         /// Hovered &gt; Selected &gt; Normal). Ein Separator ist nie
         /// "disabled" im Sinn dieser Rangfolge (er kennt in der Skin-Tabelle
@@ -541,7 +569,14 @@ namespace UIFramework.Controls
             if (e.Button == MouseButtons.Left)
             {
                 var hit = HitTest(e.Location);
-                if (hit.Kind == RibbonHitKind.TabHeader && _tabs[hit.TabIndex].Enabled)
+                // Schranke gegen geschrumpftes Modell (Mitnahme-Fund
+                // Abschluss-Review): _tabHeaderBounds stammt vom letzten
+                // Repaint — hat die App danach Tabs entfernt, trifft ein
+                // Klick VOR dem nächsten Repaint einen Index, den _tabs nicht
+                // mehr kennt. Ohne die Schranke würfe _tabs[hit.TabIndex]
+                // eine IndexOutOfRangeException.
+                if (hit.Kind == RibbonHitKind.TabHeader && hit.TabIndex < _tabs.Count
+                    && _tabs[hit.TabIndex].Enabled)
                 {
                     SelectedTabIndex = hit.TabIndex;
                 }
@@ -680,6 +715,23 @@ namespace UIFramework.Controls
         internal RibbonPlacedItem[] PlacedItemsForTests()
         {
             return _placedItems;
+        }
+
+        /// <summary>
+        /// Regressionshaken für Fund 1 (Abschluss-Review): liefert dieselbe
+        /// Innenzone, die PaintItem für <paramref name="item"/> tatsächlich
+        /// zum Malen verwendet (ruft denselben InnerZone-Helfer) — NICHT eine
+        /// separate Neuberechnung, sonst würde der Test eine künftige
+        /// Regression in PaintItem nicht mehr bemerken.
+        /// </summary>
+        internal Rectangle InnerZoneForTests(RibbonItem item)
+        {
+            using (var bitmap = new Bitmap(1, 1))
+            using (var g = Graphics.FromImage(bitmap))
+            {
+                var metrics = ComputeMetrics(g);
+                return InnerZone(BoundsOf(item), metrics, DeviceDpi);
+            }
         }
 
         internal RibbonHitInfo HitTestForTests(Point location)

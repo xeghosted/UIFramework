@@ -291,7 +291,7 @@ namespace UIFramework.Core.Rendering
             if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
             var previous = g.InterpolationMode;
-            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
             try
             {
                 if (enabled)

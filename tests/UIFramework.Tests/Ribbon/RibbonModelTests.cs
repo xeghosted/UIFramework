@@ -1,4 +1,3 @@
-using System.Windows.Forms;
 using UIFramework.Controls;
 using Xunit;
 
