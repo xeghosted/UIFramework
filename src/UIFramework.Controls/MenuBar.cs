@@ -213,6 +213,21 @@ namespace UIFramework.Controls
             base.OnMouseDown(e);
         }
 
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            // Hover-Highlight muss gelöscht werden, wenn die Maus die Leiste
+            // verlässt — OnMouseMove setzt _hoverIndex, aber nur ein
+            // OnMouseLeave-Override kann es zurücksetzen. Die no-op-Suppression
+            // invalidiert nur, wenn sich tatsächlich etwas ändert.
+            if (_hoverIndex != -1)
+            {
+                _hoverIndex = -1;
+                Invalidate();
+            }
+
+            base.OnMouseLeave(e);
+        }
+
         protected override bool ProcessMnemonic(char charCode)
         {
             char wanted = char.ToUpperInvariant(charCode);
@@ -299,6 +314,24 @@ namespace UIFramework.Controls
         internal bool PerformMnemonicForTests(char charCode)
         {
             return ProcessMnemonic(charCode);
+        }
+
+        /// <summary>Der aktuelle Hover-Index für Tests.</summary>
+        internal int HoverIndexForTests
+        {
+            get { return _hoverIndex; }
+        }
+
+        /// <summary>OnMouseMove ist protected und sonst nicht erreichbar.</summary>
+        internal void PerformMouseMoveForTests(Point location)
+        {
+            OnMouseMove(new MouseEventArgs(MouseButtons.None, 0, location.X, location.Y, 0));
+        }
+
+        /// <summary>OnMouseLeave ist protected und sonst nicht erreichbar.</summary>
+        internal void PerformMouseLeaveForTests()
+        {
+            OnMouseLeave(EventArgs.Empty);
         }
     }
 }

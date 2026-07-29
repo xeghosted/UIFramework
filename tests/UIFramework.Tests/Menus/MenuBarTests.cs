@@ -200,5 +200,34 @@ namespace UIFramework.Tests.Menus
                 Assert.Equal(host.ClientSize.Height - preferred, panel.Height);
             }
         }
+
+        // ---- Fahrprobe-Befund F2: Hover-Zustand bei Mausverlassen ----------
+        //
+        // Die Leiste hält das letzte hoverte Item mit der Hovered-Erscheinung
+        // fest, obwohl die Maus die Leiste längst verlassen hat. Ursache:
+        // _hoverIndex wird in OnMouseMove gesetzt, aber nicht zurückgesetzt,
+        // wenn die Maus das Control verlässt (fehlender OnMouseLeave-Override).
+
+        [Fact]
+        public void Mouse_leave_clears_the_hover_highlight()
+        {
+            using (var bar = TestBar())
+            {
+                var bounds = bar.ItemBoundsForTests();
+
+                // Hover-Zustand simulieren: Mausbewegung über erstes Item
+                var hoverPoint = new Point(bounds[0].Left + 5, bounds[0].Top + 5);
+                bar.PerformMouseMoveForTests(hoverPoint);
+
+                // Hover sollte aktiv sein
+                Assert.Equal(0, bar.HoverIndexForTests);
+
+                // Maus verlässt die Leiste
+                bar.PerformMouseLeaveForTests();
+
+                // Hover sollte jetzt gelöscht sein
+                Assert.Equal(-1, bar.HoverIndexForTests);
+            }
+        }
     }
 }
