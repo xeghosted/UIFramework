@@ -38,8 +38,8 @@ namespace UIFramework.Controls
     ///
     /// Nimmt NIE den Fokus (dieselbe Kerninvariante wie <see cref="MenuBar"/>)
     /// und verwaltet ihre Höhe selbst (siehe <see cref="ApplyPreferredHeight"/>).
-    /// Task 6 baut die Item-Klick-Ausführung und PopupMenu.ShowBelow obendrauf;
-    /// hier gibt es nur Tab-Wechsel und Hover/Zustände.
+    /// Item-Ausführung (Task 6): Down markiert Pressed, Up über demselben
+    /// Item führt aus (siehe <see cref="Execute"/>) — Up woanders bricht ab.
     /// </summary>
     public class RibbonControl : SkinnedControl
     {
@@ -51,6 +51,7 @@ namespace UIFramework.Controls
 
         private int _hoverTabIndex = -1;
         private RibbonItem _hoverItem;
+        private RibbonItem _pressedItem;
 
         public RibbonControl()
         {
@@ -504,15 +505,14 @@ namespace UIFramework.Controls
 
         /// <summary>
         /// Rangfolge wie überall im Framework (Disabled &gt; Pressed &gt;
-        /// Hovered &gt; Selected &gt; Normal) — Pressed fehlt hier bewusst:
-        /// die Klick-Ausführung (und damit ein gedrückter Zustand) ist
-        /// Task 6. Ein Separator ist nie "disabled" im Sinn dieser Rangfolge
-        /// (er kennt in der Skin-Tabelle ohnehin nur Normal), deshalb die
-        /// explizite Ausnahme.
+        /// Hovered &gt; Selected &gt; Normal). Ein Separator ist nie
+        /// "disabled" im Sinn dieser Rangfolge (er kennt in der Skin-Tabelle
+        /// ohnehin nur Normal), deshalb die explizite Ausnahme.
         /// </summary>
         private ElementState ItemState(RibbonItem item)
         {
             if (item.Kind != RibbonItemKind.Separator && !item.IsInteractive) return ElementState.Disabled;
+            if (ReferenceEquals(item, _pressedItem)) return ElementState.Pressed;
             if (ReferenceEquals(item, _hoverItem)) return ElementState.Hovered;
             if (item.Checked) return ElementState.Selected;
             return ElementState.Normal;
@@ -542,27 +542,98 @@ namespace UIFramework.Controls
             {
                 var hit = HitTest(e.Location);
                 if (hit.Kind == RibbonHitKind.TabHeader && _tabs[hit.TabIndex].Enabled)
+                {
                     SelectedTabIndex = hit.TabIndex;
-
-                // Item-Klick-Ausführung kommt in Task 6 — hier nur Tab-Wechsel.
+                }
+                else if (hit.Kind == RibbonHitKind.Item && hit.Item.IsInteractive)
+                {
+                    // Down markiert nur "gedrückt" — die Ausführung passiert
+                    // erst bei MouseUp über DEMSELBEN Item (OnMouseUp), damit
+                    // ein Herausziehen vor dem Loslassen den Klick abbricht.
+                    _pressedItem = hit.Item;
+                    Invalidate();
+                }
             }
 
             base.OnMouseDown(e);
         }
 
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left && _pressedItem != null)
+            {
+                var pressedItem = _pressedItem;
+                _pressedItem = null;
+                Invalidate();
+
+                // Nur ausführen, wenn die Maus über DEMSELBEN Item losgelassen
+                // wird — woanders (oder daneben) bricht den Klick ab, ohne
+                // etwas auszulösen (SkinnedControl-Muster: Verlassen räumt).
+                var hit = HitTest(e.Location);
+                if (hit.Kind == RibbonHitKind.Item && ReferenceEquals(hit.Item, pressedItem))
+                    Execute(pressedItem);
+            }
+
+            base.OnMouseUp(e);
+        }
+
         protected override void OnMouseLeave(EventArgs e)
         {
             // F2-Lehre aus 4a (MenuBar): OnMouseLeave räumt ALLES auf —
-            // Tab-Hover UND Item-Hover — sonst bliebe ein Element für immer
-            // hervorgehoben, obwohl die Maus das Ribbon längst verlassen hat.
-            if (_hoverTabIndex != -1 || _hoverItem != null)
+            // Tab-Hover, Item-Hover UND einen laufenden Press — sonst bliebe
+            // ein Element für immer hervorgehoben bzw. "gedrückt", obwohl die
+            // Maus das Ribbon längst verlassen hat.
+            if (_hoverTabIndex != -1 || _hoverItem != null || _pressedItem != null)
             {
                 _hoverTabIndex = -1;
                 _hoverItem = null;
+                _pressedItem = null;
                 Invalidate();
             }
 
             base.OnMouseLeave(e);
+        }
+
+        /// <summary>
+        /// Führt EIN Item aus — Mapping exakt nach Art:
+        ///  - Button: PerformClick.
+        ///  - ToggleButton: ERST Checked umschalten, DANN PerformClick (4a-
+        ///    Politik — vgl. MenuController.ExecuteEntry mit CheckOnClick VOR
+        ///    dem Click-Ereignis: der Handler sieht so bereits den neuen
+        ///    Zustand).
+        ///  - DropDownButton: öffnet sein Menü unterhalb der Item-Bounds
+        ///    (Bildschirmkoordinaten); ein fehlendes Menü (null) tut nichts.
+        ///  - Separator/Disabled kommen hier nie an — OnMouseDown lässt nur
+        ///    interaktive Items überhaupt zu _pressedItem werden.
+        /// App-Ausnahmen aus Click-Handlern schlagen bewusst durch (keine
+        /// Kapselung hier) — dieselbe Politik wie MenuController.ExecuteEntry.
+        /// </summary>
+        private void Execute(RibbonItem item)
+        {
+            switch (item.Kind)
+            {
+                case RibbonItemKind.Button:
+                    item.PerformClick();
+                    break;
+                case RibbonItemKind.ToggleButton:
+                    item.Checked = !item.Checked;
+                    item.PerformClick();
+                    break;
+                case RibbonItemKind.DropDownButton:
+                    if (item.Menu != null)
+                        item.Menu.ShowBelow(this, RectangleToScreen(BoundsOf(item)));
+                    break;
+            }
+        }
+
+        /// <summary>Bounds des Items unter _placedItems — der Aufrufer
+        /// garantiert per HitTest, dass das Item dort tatsächlich steht.</summary>
+        private Rectangle BoundsOf(RibbonItem item)
+        {
+            for (int i = 0; i < _placedItems.Length; i++)
+                if (ReferenceEquals(_placedItems[i].Item, item))
+                    return _placedItems[i].Bounds;
+            return Rectangle.Empty;
         }
 
         /// <summary>
@@ -612,6 +683,16 @@ namespace UIFramework.Controls
         internal void PerformMouseDownForTests(Point location)
         {
             OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, location.X, location.Y, 0));
+        }
+
+        internal void PerformMouseUpForTests(Point location)
+        {
+            OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, location.X, location.Y, 0));
+        }
+
+        internal bool HasPressForTests
+        {
+            get { return _pressedItem != null; }
         }
 
         internal void PerformMouseMoveForTests(Point location)

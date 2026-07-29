@@ -101,15 +101,38 @@ namespace UIFramework.Controls
         {
             if (entries == null) throw new ArgumentNullException(nameof(entries));
 
+            var workArea = WorkArea();
+            OpenContextCore(entries, size => MenuPlacement.PlaceContextMenu(screenLocation, size, workArea));
+        }
+
+        /// <summary>
+        /// Wie <see cref="OpenContext(IList{MenuEntry}, Point)"/>, aber mit
+        /// Dropdown-Platzierung UNTERHALB eines Bildschirm-Ankers statt
+        /// Punkt-Platzierung — für PopupMenu.ShowBelow (Task 6). Kleinste
+        /// tragfähige Erweiterung: ein zweiter OpenContext-Überload, der auf
+        /// dieselbe Mechanik (OpenContextCore) wie der Punkt-Überload
+        /// delegiert und sich nur in der Platzierungsfunktion unterscheidet.
+        /// </summary>
+        public void OpenContext(IList<MenuEntry> entries, Rectangle screenAnchor)
+        {
+            if (entries == null) throw new ArgumentNullException(nameof(entries));
+
+            var workArea = WorkArea();
+            OpenContextCore(entries, size => MenuPlacement.PlaceDropdown(screenAnchor, size, workArea));
+        }
+
+        /// <summary>Gemeinsame Mechanik beider OpenContext-Überladen: Kette
+        /// schließen, Sitzung als Kontext-Modus (kein Leisten-Bezug)
+        /// aufsetzen, Level 0 mit der übergebenen Platzierung öffnen.</summary>
+        private void OpenContextCore(IList<MenuEntry> entries, Func<Size, Rectangle> place)
+        {
             CloseChainOnly();
             _ownerForm = _owner.FindForm();
             _bar = null;
             BarIndex = -1;
             _state = new MenuChainState(0, -1);
 
-            var workArea = WorkArea();
-            OpenLevel(entries, null, 0,
-                size => MenuPlacement.PlaceContextMenu(screenLocation, size, workArea));
+            OpenLevel(entries, null, 0, place);
 
             InstallFilterIfNeeded();
             HookOwnerFormIfNeeded();

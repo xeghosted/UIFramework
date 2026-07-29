@@ -30,6 +30,22 @@ namespace UIFramework.Controls
             _controller.OpenContext(_items, screenLocation);
         }
 
+        /// <summary>
+        /// Wie <see cref="Show"/> (gleiche Wächter, gleicher Controller-
+        /// Tausch), platziert das Menü aber als Dropdown UNTERHALB von
+        /// screenAnchor (MenuPlacement.PlaceDropdown) statt an einem Punkt —
+        /// für DropDownButton-Items im Ribbon (Task 6).
+        /// </summary>
+        public void ShowBelow(Control owner, Rectangle screenAnchor)
+        {
+            if (owner == null) throw new ArgumentNullException(nameof(owner));
+            if (_items.Count == 0) return;
+
+            if (_controller != null) _controller.Dispose();
+            _controller = new MenuController(owner);
+            _controller.OpenContext(_items, screenAnchor);
+        }
+
         public void Dispose()
         {
             if (_controller != null)

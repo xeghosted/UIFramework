@@ -89,5 +89,33 @@ namespace UIFramework.Tests.Menus
 
             Assert.False(controller.IsOpen);
         }
+
+        [Fact]
+        public void ShowBelow_opens_left_aligned_under_the_anchor()
+        {
+            using (var menu = new PopupMenu())
+            {
+                menu.Items.Add(new MenuEntry("&Eins"));
+                _owner.CreateControl();
+
+                menu.ShowBelow(_owner, new Rectangle(300, 200, 120, 30));
+
+                Assert.True(menu.ControllerForTests.IsOpen);
+                Assert.Equal(1, menu.ControllerForTests.ChainDepth);
+            }
+        }
+
+        [Fact]
+        public void ShowBelow_requires_an_owner_and_ignores_empty_items()
+        {
+            using (var menu = new PopupMenu())
+            {
+                Assert.Throws<ArgumentNullException>(
+                    () => menu.ShowBelow(null, new Rectangle(0, 0, 10, 10)));
+                _owner.CreateControl();
+                menu.ShowBelow(_owner, new Rectangle(0, 0, 10, 10));   // leer -> No-op
+                Assert.Null(menu.ControllerForTests);
+            }
+        }
     }
 }
