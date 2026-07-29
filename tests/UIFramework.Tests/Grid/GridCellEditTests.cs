@@ -241,5 +241,101 @@ namespace UIFramework.Tests.Grid
                 Assert.Equal("Geklickt", people[0].Name);
             }
         }
+
+        [Fact]
+        public void Scrolling_commits_the_open_editor()
+        {
+            var people = People(200);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.BeginEdit(0, 0);
+                grid.CurrentEditorForTests.EditValue = "Gescrollt";
+                grid.PerformWheel(-120);
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("Gescrollt", people[0].Name);
+            }
+        }
+
+        [Fact]
+        public void Resizing_a_column_commits_the_open_editor()
+        {
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.BeginEdit(0, 0);
+                grid.CurrentEditorForTests.EditValue = "Gezogen";
+                grid.Columns[0].Width = 200;
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("Gezogen", people[0].Name);
+            }
+        }
+
+        [Fact]
+        public void A_header_click_commits_before_the_handler_runs()
+        {
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                string nameSeenByHandler = null;
+                grid.HeaderClick += (s, column) => nameSeenByHandler = people[0].Name;
+
+                grid.BeginEdit(0, 0);
+                grid.CurrentEditorForTests.EditValue = "Sortiert";
+
+                grid.BeginReorder(new Point(10, 5));   // Kopf greifen …
+                grid.EndReorder();                     // … ohne Zug = HeaderClick
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("Sortiert", nameSeenByHandler);   // Commit lief VOR dem Handler
+            }
+        }
+
+        [Fact]
+        public void A_source_that_shrank_under_the_editor_discards_without_writing()
+        {
+            var people = People(10);
+            var source = Writable(people);
+            using (var grid = Grid(source))
+            {
+                grid.BeginEdit(8, 0);
+                grid.CurrentEditorForTests.EditValue = "NieGeschrieben";
+
+                people.RemoveRange(5, 5);              // Quelle schrumpft in place auf 5 Zeilen
+
+                using (var bitmap = new Bitmap(400, 300))
+                using (var g = Graphics.FromImage(bitmap))
+                    grid.DrawTo(g);                    // "vor dem Neuzeichnen" (Spec)
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("P4", people[4].Name);    // nichts geschrieben, nirgendwo
+            }
+        }
+
+        [Fact]
+        public void Tab_commits_and_moves_to_the_next_editable_cell()
+        {
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                // Zweite bearbeitbare Spalte anlegen: Rang bekommt eine Fabrik+Setter.
+                ((ListDataSource<Person>)grid.DataSource).MapSet("Rang", (p, v) => p.Rang = Convert.ToInt32(v));
+                grid.Columns[1].EditorFactory = () => new SpinEdit { MinValue = 0, MaxValue = 1000 };
+
+                grid.BeginEdit(3, 0);
+                grid.CurrentEditorForTests.EditValue = "GetabT";
+                grid.CommitAndEditNextForTests();
+
+                Assert.Equal("GetabT", people[3].Name);
+                Assert.True(grid.IsEditing);
+                Assert.Equal(3, grid.EditRowForTests);
+                Assert.Equal(1, grid.EditColumnForTests);
+
+                grid.CommitAndEditNextForTests();      // hinter der letzten Spalte: Zeile+1, Spalte 0
+                Assert.Equal(4, grid.EditRowForTests);
+                Assert.Equal(0, grid.EditColumnForTests);
+            }
+        }
     }
 }

@@ -141,6 +141,10 @@ namespace UIFramework.Grid
                 int clamped = ClampVertical(value);
                 if (_verticalOffset == clamped) return;
 
+                // Zwangs-Commit (Spec 3b): Es schwebt nie ein Editor über der falschen
+                // Zeile — erst bestätigen, dann bewegt sich die Sicht.
+                CommitEdit();
+
                 _verticalOffset = clamped;
                 Invalidate();
                 SyncScrollBars();
@@ -155,6 +159,10 @@ namespace UIFramework.Grid
             {
                 int clamped = ClampHorizontal(value);
                 if (_horizontalOffset == clamped) return;
+
+                // Zwangs-Commit (Spec 3b): Es schwebt nie ein Editor über der falschen
+                // Zeile — erst bestätigen, dann bewegt sich die Sicht.
+                CommitEdit();
 
                 _horizontalOffset = clamped;
                 Invalidate();
@@ -225,6 +233,12 @@ namespace UIFramework.Grid
         public void DrawTo(Graphics g)
         {
             if (g == null) throw new ArgumentNullException(nameof(g));
+
+            // Quellen-Schrumpfen unter offenem Editor: Der gemerkte Zeilenindex zeigt
+            // jetzt auf eine ANDERE (oder keine) Zeile — ein Commit würde fremde
+            // Daten überschreiben. Deshalb Schließen OHNE Schreiben, bewusst abweichend
+            // vom Spec-Wort "bestätigen" (Plan-Entscheidung 3), vor dem Neuzeichnen.
+            if (_editor != null && _editRow >= RowCount) CancelEdit();
 
             int dpi = DeviceDpi;
             var grid = SkinManager.Current.GetAppearance(ElementKeys.Grid, ElementState.Normal);
@@ -623,8 +637,38 @@ namespace UIFramework.Grid
 
         private void OnEditorPreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
-            // Tab-Wanderung kommt in Task 6 — der Handler existiert ab hier, damit
-            // An-/Abmelden symmetrisch bleiben.
+            if (e.KeyCode != Keys.Tab || e.Shift) return;
+
+            // Als Eingabetaste markieren: Sonst wandert WinForms den Fokus selbst.
+            // Der eigentliche Wechsel läuft AUSSERHALB der Tastenverarbeitung —
+            // einen fokussierten Editor mitten im Handshake zu zerstören war exakt
+            // die PopupHost-Lektion aus 3a (aufgeschobenes Close).
+            e.IsInputKey = true;
+            if (IsHandleCreated) BeginInvoke((MethodInvoker)CommitAndEditNext);
+            else CommitAndEditNext();
+        }
+
+        /// <summary>Tab: bestätigen und zur nächsten bearbeitbaren Zelle — erst
+        /// rechts in derselben Zeile, dann Zeile+1 ab Spalte 0. Gibt es keine,
+        /// bleibt es beim Bestätigen (Plan-Entscheidung 6).</summary>
+        private void CommitAndEditNext()
+        {
+            if (_editor == null) return;
+
+            int row = _editRow;
+            int column = _editColumn;
+            CommitEdit();
+
+            for (int c = column + 1; c < Columns.Count; c++)
+                if (CanEditCell(row, c)) { BeginEdit(row, c); return; }
+
+            for (int c = 0; c < Columns.Count; c++)
+                if (CanEditCell(row + 1, c)) { BeginEdit(row + 1, c); return; }
+        }
+
+        internal void CommitAndEditNextForTests()
+        {
+            CommitAndEditNext();
         }
 
         // ---- Nur für Tests --------------------------------------------------
@@ -733,6 +777,8 @@ namespace UIFramework.Grid
 
         protected virtual void OnHeaderClick(int columnIndex)
         {
+            CommitEdit();
+
             var handler = HeaderClick;
             if (handler != null) handler(this, columnIndex);
         }
@@ -1034,6 +1080,7 @@ namespace UIFramework.Grid
 
         private void OnColumnsChanged(object sender, EventArgs e)
         {
+            CommitEdit();
             ClampOffsets();
             Invalidate();
         }
