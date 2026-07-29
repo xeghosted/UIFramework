@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
 using UIFramework.Core.Dpi;
 using UIFramework.Core.Skinning;
@@ -272,6 +273,74 @@ namespace UIFramework.Core.Rendering
 
             var pen = ResourceCache.Shared.GetPen(appearance.BorderColor, width);
             g.DrawLine(pen, left, y, right, y);
+        }
+
+        /// <summary>
+        /// Malt ein App-Bild skaliert in die Zielzone. Die Zone kommt bereits in
+        /// Gerätepixeln (das Ribbon leitet sie aus der gemessenen Textzeilenhöhe
+        /// ab — großes Bild 2x, kleines 1x); hier passiert deshalb bewusst KEINE
+        /// DpiScale-Rechnung, nur hochwertige Interpolation. enabled=false malt
+        /// halbtransparent über eine ColorMatrix — ausgegraute Knöpfe brauchen
+        /// keine zweiten Bitmaps von der App. Das Bild gehört der App: es wird
+        /// weder disposed noch kopiert.
+        /// </summary>
+        public static void DrawScaledImage(Graphics g, Image image, Rectangle bounds, bool enabled)
+        {
+            if (g == null) throw new ArgumentNullException(nameof(g));
+            if (image == null) return;
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+
+            var previous = g.InterpolationMode;
+            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            try
+            {
+                if (enabled)
+                {
+                    g.DrawImage(image, bounds);
+                }
+                else
+                {
+                    // Nur die Deckkraft dämpfen — Farbstich bleibt erhalten, das
+                    // Auge erkennt den Knopf weiterhin.
+                    var matrix = new ColorMatrix { Matrix33 = 0.35f };
+                    using (var attributes = new ImageAttributes())
+                    {
+                        attributes.SetColorMatrix(matrix);
+                        g.DrawImage(image, bounds, 0, 0, image.Width, image.Height,
+                            GraphicsUnit.Pixel, attributes);
+                    }
+                }
+            }
+            finally
+            {
+                g.InterpolationMode = previous;
+            }
+        }
+
+        /// <summary>
+        /// Senkrechtes Gegenstück zu <see cref="DrawSeparatorLine"/>: Linie in
+        /// BorderColor/DPI-skalierter BorderWidth, horizontal mittig, oben/unten
+        /// um das skalierte Padding eingezogen. Für Ribbon-Separatoren zwischen
+        /// Item-Spalten.
+        /// </summary>
+        public static void DrawVerticalSeparatorLine(Graphics g, Rectangle bounds, ElementAppearance appearance, int dpi)
+        {
+            if (g == null) throw new ArgumentNullException(nameof(g));
+            if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+            if (appearance.BorderWidth <= 0 || appearance.BorderColor.A == 0) return;
+
+            int width = DpiScale.Scale(appearance.BorderWidth, dpi);
+            if (width <= 0) return;
+
+            var padding = DpiScale.Scale(appearance.Padding, dpi);
+            int x = bounds.Left + bounds.Width / 2;
+            int top = bounds.Top + padding.Top;
+            int bottom = bounds.Bottom - padding.Bottom;
+            if (bottom <= top) return;
+
+            var pen = ResourceCache.Shared.GetPen(appearance.BorderColor, width);
+            g.DrawLine(pen, x, top, x, bottom);
         }
 
         // NoPadding|SingleLine OHNE NoPrefix (Mnemonic-Verarbeitung an) und OHNE
