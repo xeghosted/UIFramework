@@ -25,6 +25,7 @@ namespace UIFramework.Demo
             public string Name { get; set; }
             public string Ort { get; set; }
             public decimal Betrag { get; set; }
+            public bool Aktiv { get; set; }
         }
 
         private readonly ListDataSource<Zeile> _baseSource;
@@ -42,10 +43,34 @@ namespace UIFramework.Demo
             StartPosition = FormStartPosition.CenterScreen;
 
             var grid = new GridControl { Dock = DockStyle.Fill };
-            grid.Columns.Add(new GridColumn("Nummer", "Nr.") { Width = 70 });
-            grid.Columns.Add(new GridColumn("Name", "Name") { Width = 160 });
-            grid.Columns.Add(new GridColumn("Ort", "Ort") { Width = 140 });
-            grid.Columns.Add(new GridColumn("Betrag", "Betrag") { Width = 100 });
+            grid.Columns.Add(new GridColumn("Nummer", "Nr.") { Width = 70, ReadOnly = true });
+            grid.Columns.Add(new GridColumn("Name", "Name")
+            {
+                Width = 160,
+                EditorFactory = () => new SkinTextBox()
+            });
+            grid.Columns.Add(new GridColumn("Ort", "Ort")
+            {
+                Width = 140,
+                EditorFactory = () =>
+                {
+                    var combo = new SkinComboBox();
+                    foreach (var ort in new[] { "Berlin", "Hamburg", "München", "Köln", "Zürich", "Wien" })
+                        combo.Items.Add(ort);
+                    return combo;
+                }
+            });
+            grid.Columns.Add(new GridColumn("Betrag", "Betrag")
+            {
+                Width = 100,
+                // Betrag liegt 0..99,99 (i%10000/100) — die Grenzen sind die der Daten.
+                EditorFactory = () => new SpinEdit { MinValue = 0, MaxValue = 100, Increment = 1 }
+            });
+            grid.Columns.Add(new GridColumn("Aktiv", "Aktiv")
+            {
+                Width = 70,
+                EditorFactory = () => new CheckEdit { Text = "an" }
+            });
 
             _baseSource = new ListDataSource<Zeile>(BuildRows(1000000));
             _baseSource.Map("Nummer", z => z.Nummer);
@@ -57,6 +82,11 @@ namespace UIFramework.Demo
             // in IGridDataSource.GetValue). Fest zweistellig gepolstert bleibt
             // die Zeichenkettenordnung deckungsgleich mit der Zahlenordnung.
             _baseSource.Map("Betrag", z => z.Betrag.ToString("00.00"));
+            _baseSource.Map("Aktiv", z => z.Aktiv);
+            _baseSource.MapSet("Name", (z, v) => z.Name = (string)v);
+            _baseSource.MapSet("Ort", (z, v) => z.Ort = (string)(v ?? ""));
+            _baseSource.MapSet("Betrag", (z, v) => z.Betrag = (decimal)v);
+            _baseSource.MapSet("Aktiv", (z, v) => z.Aktiv = (bool)v);
 
             grid.HeaderClick += OnGridHeaderClick;
             RebuildDataSource(grid);
@@ -101,7 +131,8 @@ namespace UIFramework.Demo
                     Nummer = i,
                     Name = namen[i % namen.Length] + " " + i,
                     Ort = orte[i % orte.Length],
-                    Betrag = (i % 10000) / 100m
+                    Betrag = (i % 10000) / 100m,
+                    Aktiv = i % 2 == 0
                 });
             }
             return rows;
