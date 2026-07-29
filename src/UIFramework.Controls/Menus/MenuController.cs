@@ -44,7 +44,7 @@ namespace UIFramework.Controls
         private readonly Timer _hoverTimer;
 
         private Form _ownerForm;
-        private bool _formHooked;
+        private Form _hookedForm;
         private MenuModeFilter _filter;
         private MenuChainState _state;
         private IBarHome _bar;
@@ -188,11 +188,42 @@ namespace UIFramework.Controls
                     CloseAll();
                     break;
                 case MenuKeyActionKind.SwitchBar:
-                    OpenBarDropdown(_bar, action.NewBarIndex, true);
+                    SwitchBar(action.NewBarIndex);
                     break;
                 case MenuKeyActionKind.Execute:
                     ExecuteEntry(action.Entry);
                     break;
+            }
+        }
+
+        /// <summary>SwitchBar (Links/Rechts am Rand einer Top-Level-Ebene) darf
+        /// wie Klick, Mnemonic und Hot-Tracking nur auf einem selektierbaren
+        /// Leisten-Eintrag landen — die Maschine kennt IsBarItemSelectable
+        /// nicht (reines Leisten-Wissen), darum prüft das erst hier der
+        /// Controller, bevor er ein neues Dropdown öffnet. Von newBarIndex aus
+        /// wird in Tastenrichtung weitergelaufen, bis ein selektierbarer
+        /// Eintrag gefunden ist oder die Suche wieder beim aktuellen BarIndex
+        /// ankommt (dann: nichts schließen, nichts öffnen).</summary>
+        private void SwitchBar(int newBarIndex)
+        {
+            int barCount = _bar.BarItemCount;
+
+            // Die Richtung lässt sich nicht am Vorzeichen von (newBarIndex -
+            // BarIndex) ablesen — bei Umlauf (letzter -> erster Eintrag) wäre
+            // das Vorzeichen falsch herum. Stattdessen: ein Schritt vorwärts
+            // (mit Umlauf) ergibt Differenz 1, sonst war es ein Schritt rückwärts.
+            int direction = (newBarIndex - BarIndex + barCount) % barCount == 1 ? +1 : -1;
+
+            int index = newBarIndex;
+            for (int step = 0; step < barCount; step++)
+            {
+                if (index == BarIndex) return; // einmal ganz herum, kein anderer selektierbarer Eintrag
+                if (_bar.IsBarItemSelectable(index))
+                {
+                    OpenBarDropdown(_bar, index, true);
+                    return;
+                }
+                index = (index + direction + barCount) % barCount;
             }
         }
 
@@ -406,24 +437,27 @@ namespace UIFramework.Controls
 
         private void HookOwnerFormIfNeeded()
         {
-            if (_formHooked) return;
-            if (_ownerForm != null)
-            {
-                _ownerForm.Deactivate += OnOwnerFormDeactivateOrDisposed;
-                _ownerForm.Disposed += OnOwnerFormDeactivateOrDisposed;
-            }
-            _formHooked = true;
+            // _hookedForm statt eines reinen bool-Latches: merkt sich die
+            // TATSÄCHLICH abonnierte Form. Ein bool-Latch würde auch dann auf
+            // true springen, wenn FindForm() null lieferte (Owner noch nicht
+            // in eine Form eingehängt) — ein späteres Open MIT Form würde dann
+            // nie mehr gehookt. Und _ownerForm wird bei jedem Open neu
+            // zugewiesen, darum muss Unhook gegen die wirklich abonnierte
+            // Form abbestellen, nicht gegen das inzwischen andere _ownerForm.
+            if (_hookedForm != null) return;
+            if (_ownerForm == null) return;
+
+            _ownerForm.Deactivate += OnOwnerFormDeactivateOrDisposed;
+            _ownerForm.Disposed += OnOwnerFormDeactivateOrDisposed;
+            _hookedForm = _ownerForm;
         }
 
         private void UnhookOwnerForm()
         {
-            if (!_formHooked) return;
-            if (_ownerForm != null)
-            {
-                _ownerForm.Deactivate -= OnOwnerFormDeactivateOrDisposed;
-                _ownerForm.Disposed -= OnOwnerFormDeactivateOrDisposed;
-            }
-            _formHooked = false;
+            if (_hookedForm == null) return;
+            _hookedForm.Deactivate -= OnOwnerFormDeactivateOrDisposed;
+            _hookedForm.Disposed -= OnOwnerFormDeactivateOrDisposed;
+            _hookedForm = null;
         }
 
         private void OnOwnerFormDeactivateOrDisposed(object sender, EventArgs e)
@@ -434,7 +468,14 @@ namespace UIFramework.Controls
         public bool IsWindowInChain(IntPtr hwnd)
         {
             if (hwnd == IntPtr.Zero) return false;
-            if (_owner.IsHandleCreated && _owner.Handle == hwnd) return true;
+
+            // Der Owner zählt nur im Leisten-Modus als "innen": dort IST der
+            // Owner die MenuBar, deren eigener Klick (OnMouseDown) das
+            // Dropdown öffnet/wechselt und darum durchmuss. Im Kontext-Modus
+            // ist der Owner ein beliebiges anderes Control (z.B. eine
+            // Grid-Zeile) — ein Klick darauf bei offenem Menü ist ein
+            // Außenklick und muss die Kette schließen statt durchzulaufen.
+            if (_bar != null && _owner.IsHandleCreated && _owner.Handle == hwnd) return true;
 
             for (int i = 0; i < _chain.Count; i++)
                 if (_chain[i].Host.IsHandleCreated && _chain[i].Host.Handle == hwnd) return true;

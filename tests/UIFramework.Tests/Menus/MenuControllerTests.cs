@@ -42,6 +42,44 @@ namespace UIFramework.Tests.Menus
             return controller;
         }
 
+        /// <summary>Kleiner Test-Fake für IBarHome (das echte Interface ist
+        /// internal und die MenuBar selbst existiert unabhängig davon —
+        /// Muster aus der Schnittstellen-Doc: "so mit einem Test-Fake baubar,
+        /// ohne von der MenuBar abzuhängen"). Ist selbst ein Control: im
+        /// Leisten-Modus IST der Owner des MenuControllers die Bar. Jeder
+        /// Top-Level-Index bekommt genau ein Blatt als Dropdown-Inhalt (kein
+        /// Untermenü) — damit landet OpenBarDropdown(selectFirst) direkt auf
+        /// einem Blatt und ein Right danach nimmt garantiert den SwitchBar-
+        /// Zweig (statt OpenSubmenu). selectable steuert IsBarItemSelectable
+        /// je Index unabhängig von MenuEntry.Enabled/HasChildren — genau das
+        /// Wissen, das SwitchBar jetzt prüfen muss (Finding 2).</summary>
+        private sealed class FakeBarHome : Control, IBarHome
+        {
+            private readonly IList<MenuEntry>[] _items;
+            private readonly bool[] _selectable;
+
+            public FakeBarHome(bool[] selectable)
+            {
+                _selectable = selectable;
+                _items = new IList<MenuEntry>[selectable.Length];
+                for (int i = 0; i < selectable.Length; i++)
+                    _items[i] = new List<MenuEntry> { new MenuEntry("&Eins") };
+            }
+
+            int IBarHome.BarItemCount { get { return _items.Length; } }
+            IList<MenuEntry> IBarHome.BarItems(int index) { return _items[index]; }
+            Rectangle IBarHome.BarItemScreenBounds(int index) { return new Rectangle(index * 40, 0, 40, 20); }
+            bool IBarHome.IsBarItemSelectable(int index) { return _selectable[index]; }
+        }
+
+        private static MenuController OpenBarDropdown(FakeBarHome fake, int barIndex)
+        {
+            fake.CreateControl();
+            var controller = new MenuController(fake);
+            controller.OpenBarDropdown(fake, barIndex, true); // selectFirst: wählt das eine Blatt vor
+            return controller;
+        }
+
         [Fact]
         public void Opening_a_context_menu_installs_the_filter_and_shows_one_level()
         {
@@ -168,12 +206,80 @@ namespace UIFramework.Tests.Menus
         }
 
         [Fact]
-        public void All_chain_windows_and_the_owner_count_as_inside()
+        public void A_click_on_the_context_owner_counts_as_outside_the_chain()
         {
+            // Im Kontext-Modus ist der Owner ein beliebiges anderes Control
+            // (z.B. eine Grid-Zeile) — ein Klick darauf bei offenem Menü ist
+            // ein Außenklick und muss die Kette schließen, nicht durchlaufen
+            // (Finding 1). Vorher lieferte IsWindowInChain hier fälschlich true.
             using (var controller = OpenContext(Entries()))
             {
-                Assert.True(controller.IsWindowInChain(_owner.Handle));
+                Assert.False(controller.IsWindowInChain(_owner.Handle));
                 Assert.False(controller.IsWindowInChain(IntPtr.Zero));
+            }
+        }
+
+        [Fact]
+        public void A_click_on_the_bar_owner_counts_as_inside_the_chain()
+        {
+            // Im Leisten-Modus IST der Owner die Bar — ihr eigener Klick
+            // (OnMouseDown öffnet/wechselt das Dropdown) muss durchlaufen.
+            using (var fake = new FakeBarHome(new[] { true, true }))
+            using (var controller = OpenBarDropdown(fake, 0))
+            {
+                Assert.True(controller.IsWindowInChain(fake.Handle));
+            }
+        }
+
+        [Fact]
+        public void SwitchBar_skips_a_non_selectable_bar_item_in_between()
+        {
+            // Mittlerer Eintrag (Index 1) nicht selektierbar: Rechts vom
+            // ersten (Index 0) muss auf dem dritten (Index 2) landen, nicht
+            // ungeprüft auf dem übersprungenen mittleren (Finding 2).
+            using (var fake = new FakeBarHome(new[] { true, false, true }))
+            using (var controller = OpenBarDropdown(fake, 0))
+            {
+                controller.HandleKey(Keys.Right);
+
+                Assert.Equal(2, controller.BarIndex);
+                Assert.True(controller.IsOpen);
+            }
+        }
+
+        [Fact]
+        public void SwitchBar_is_a_no_op_when_no_other_bar_item_is_selectable()
+        {
+            // Alle anderen Einträge nicht selektierbar: Rechts darf die Kette
+            // weder schließen noch das aktuelle Dropdown neu aufbauen (das
+            // würde die Auswahl im Popup zurücksetzen) — reines No-op.
+            using (var fake = new FakeBarHome(new[] { true, false, false }))
+            using (var controller = OpenBarDropdown(fake, 0))
+            {
+                int selectedBefore = controller.ContentAtForTests(0).SelectedIndex;
+
+                controller.HandleKey(Keys.Right);
+
+                Assert.Equal(0, controller.BarIndex);
+                Assert.True(controller.IsOpen);
+                Assert.Equal(1, controller.ChainDepth);
+                Assert.Equal(selectedBefore, controller.ContentAtForTests(0).SelectedIndex);
+            }
+        }
+
+        [Fact]
+        public void SwitchBar_is_a_no_op_with_a_single_bar_item()
+        {
+            // barCount == 1: Rechts auf dem einzigen Blatt darf das eigene
+            // Dropdown nicht mit Auswahl-Reset neu öffnen.
+            using (var fake = new FakeBarHome(new[] { true }))
+            using (var controller = OpenBarDropdown(fake, 0))
+            {
+                controller.HandleKey(Keys.Right);
+
+                Assert.Equal(0, controller.BarIndex);
+                Assert.True(controller.IsOpen);
+                Assert.Equal(1, controller.ChainDepth);
             }
         }
 
