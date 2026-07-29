@@ -454,6 +454,10 @@ namespace UIFramework.Grid
         /// </summary>
         public void PerformClick(Point point, Keys modifiers)
         {
+            // Klick auf eine andere Zelle (oder daneben) bestätigt den laufenden
+            // Editor (Spec 3b, Lebenszyklus) — BEVOR die Auswahl wandert.
+            CommitEdit();
+
             var hit = HitTestAt(point);
 
             switch (hit.Region)
@@ -855,6 +859,7 @@ namespace UIFramework.Grid
         {
             var hit = HitTestAt(e.Location);
             if (hit.Region == GridRegion.HeaderDivider) AutoFitColumn(hit.ColumnIndex);
+            else if (hit.Region == GridRegion.Cell) BeginEdit(hit.RowIndex, hit.ColumnIndex);
 
             base.OnMouseDoubleClick(e);
         }
@@ -887,6 +892,13 @@ namespace UIFramework.Grid
             if (rowCount == 0) return;
 
             var key = keyData & Keys.KeyCode;
+
+            if (key == Keys.F2)
+            {
+                BeginEditAtCurrentRow(null);
+                return;
+            }
+
             bool shift = (keyData & Keys.Shift) == Keys.Shift;
 
             int current = Selection.CurrentRow;
@@ -980,6 +992,44 @@ namespace UIFramework.Grid
         {
             PerformKey(e.KeyData);
             base.OnKeyDown(e);
+        }
+
+        /// <summary>F2 und Lostippen: Die Auswahl ist zeilenbasiert (kein
+        /// Spalten-Cursor) — bearbeitet wird die ERSTE bearbeitbare Spalte der
+        /// aktuellen Zeile (Plan-Entscheidung 5).</summary>
+        private void BeginEditAtCurrentRow(string seedText)
+        {
+            int row = Selection.CurrentRow;
+            if (row < 0) return;
+
+            for (int c = 0; c < Columns.Count; c++)
+            {
+                if (CanEditCell(row, c))
+                {
+                    BeginEdit(row, c, seedText);
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Lostippen: das erste Zeichen wandert in den Editor (ersetzt den Wert,
+        /// Caret ans Ende — BeginWith). Öffentlich als Test-Naht wie PerformKey.
+        /// Editoren ohne Textkern ignorieren den Seed; die Aktivierung entspricht
+        /// dann F2 (Plan-Entscheidung 4).
+        /// </summary>
+        public void PerformTyping(char c)
+        {
+            if (char.IsControl(c)) return;
+            if (IsEditing) return;
+
+            BeginEditAtCurrentRow(c.ToString());
+        }
+
+        protected override void OnKeyPress(KeyPressEventArgs e)
+        {
+            PerformTyping(e.KeyChar);
+            base.OnKeyPress(e);
         }
 
         private void OnColumnsChanged(object sender, EventArgs e)

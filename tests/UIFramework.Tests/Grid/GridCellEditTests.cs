@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Windows.Forms;
 using UIFramework.Controls;
 using UIFramework.Core.Skinning;
 using UIFramework.Grid;
@@ -183,6 +184,61 @@ namespace UIFramework.Tests.Grid
                 grid.BeginEdit(0, 0);
                 Assert.Throws<InvalidOperationException>(() => grid.CommitEdit());
                 Assert.True(grid.IsEditing);   // ehrlich offen geblieben, nichts verschluckt
+            }
+        }
+
+        [Fact]
+        public void F2_edits_the_first_editable_column_of_the_current_row()
+        {
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.Selection.Select(3);
+                grid.PerformKey(Keys.F2);
+
+                Assert.True(grid.IsEditing);
+                Assert.Equal(3, grid.EditRowForTests);
+                Assert.Equal(0, grid.EditColumnForTests);   // "Rang" hat keine Fabrik
+            }
+        }
+
+        [Fact]
+        public void Typing_starts_editing_and_seeds_the_text()
+        {
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.Selection.Select(1);
+                grid.PerformTyping('n');
+
+                Assert.True(grid.IsEditing);
+                Assert.Equal("n", grid.CurrentEditorForTests.EditValue);
+            }
+        }
+
+        [Fact]
+        public void Typing_without_a_current_row_does_nothing()
+        {
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.PerformTyping('n');
+                Assert.False(grid.IsEditing);
+            }
+        }
+
+        [Fact]
+        public void Clicking_another_cell_commits_the_open_editor()
+        {
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.BeginEdit(0, 0);
+                grid.CurrentEditorForTests.EditValue = "Geklickt";
+                grid.PerformClick(new Point(10, grid.CellBounds(4, 0).Top + 2), Keys.None);
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("Geklickt", people[0].Name);
             }
         }
     }
