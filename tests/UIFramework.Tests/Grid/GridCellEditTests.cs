@@ -305,6 +305,42 @@ namespace UIFramework.Tests.Grid
         }
 
         [Fact]
+        public void Resizing_the_grid_control_itself_commits_the_open_editor()
+        {
+            // Befund F2: OnSizeChanged rief bisher nur ClampOffsets, das den
+            // Versatz an den Settern (und damit am Commit-Hook) vorbei schreibt.
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.BeginEdit(0, 0);
+                grid.CurrentEditorForTests.EditValue = "Groessenaenderung";
+
+                grid.Size = new Size(grid.Width + 50, grid.Height - 50);
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("Groessenaenderung", people[0].Name);
+            }
+        }
+
+        [Fact]
+        public void A_dpi_change_commits_the_open_editor()
+        {
+            // Befund F2, derselbe Klemmpfad wie bei OnSizeChanged, nur ueber
+            // OnDpiChangedAfterParent statt Groessenaenderung ausgeloest.
+            var people = People(10);
+            using (var grid = Grid(Writable(people)))
+            {
+                grid.BeginEdit(0, 0);
+                grid.CurrentEditorForTests.EditValue = "DpiGewechselt";
+
+                grid.RaiseDpiChangedForTests();
+
+                Assert.False(grid.IsEditing);
+                Assert.Equal("DpiGewechselt", people[0].Name);
+            }
+        }
+
+        [Fact]
         public void A_header_click_commits_before_the_handler_runs()
         {
             var people = People(10);

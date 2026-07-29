@@ -146,6 +146,17 @@ namespace UIFramework.Controls
             get { return !HasNativeTextCore; }
         }
 
+        /// <summary>Bestätigen bei Fokusverlust (Befund F1) — NUR im kernlosen Fall:
+        /// Mit Kern übernimmt das bereits _inner.LostFocus im Konstruktor; ein
+        /// zweites Bestätigen hier wäre doppelt. Derselbe !IsPopupOpen-Guard wie
+        /// dort: Sonst risse das Öffnen der eigenen Liste (SkinComboBox) den
+        /// Editor unter dem Popup weg.</summary>
+        protected override void OnLostFocus(EventArgs e)
+        {
+            if (InnerTextBox == null && !IsPopupOpen) RaiseEditConfirmed();
+            base.OnLostFocus(e);
+        }
+
         /// <summary>True, solange ein Knopf gedrückt gehalten wird (Maustaste
         /// unten, noch nicht losgelassen) — für Ableitungen, die währenddessen
         /// kein Popup öffnen wollen (SkinComboBox).</summary>
@@ -603,6 +614,13 @@ namespace UIFramework.Controls
         internal void ConfirmForTests()
         {
             RaiseEditConfirmed();
+        }
+
+        /// <summary>Simuliert Fokusverlust — Fokus selbst ist kopflos nicht
+        /// auslösbar (Muster: RaisePopupDeactivateForTests).</summary>
+        internal void RaiseLostFocusForTests()
+        {
+            OnLostFocus(EventArgs.Empty);
         }
 
         internal void CancelForTests()

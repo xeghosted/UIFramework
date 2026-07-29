@@ -186,17 +186,45 @@ namespace UIFramework.Controls
         /// treiben können (Muster: GridControl.PerformKey).</summary>
         internal void PerformKey(Keys key)
         {
-            if (key == Keys.Space && Enabled) Checked = !Checked;
-            else if (key == Keys.Enter)
-            {
-                var handler = EditConfirmed;
-                if (handler != null) handler(this, EventArgs.Empty);
-            }
-            else if (key == Keys.Escape)
-            {
-                var handler = EditCancelled;
-                if (handler != null) handler(this, EventArgs.Empty);
-            }
+            // Symmetrie (Befund F4): vorher prüfte nur Space auf Enabled — Enter
+            // und Escape feuerten auch an einem deaktivierten Editor.
+            if (!Enabled) return;
+
+            if (key == Keys.Space) Checked = !Checked;
+            else if (key == Keys.Enter) RaiseEditConfirmed();
+            else if (key == Keys.Escape) RaiseEditCancelled();
+        }
+
+        /// <summary>Gegenstück zu ButtonEditBase.RaiseEditConfirmed — CheckEdit hat
+        /// keine gemeinsame Basis dafür (kein Textkern).</summary>
+        private void RaiseEditConfirmed()
+        {
+            var handler = EditConfirmed;
+            if (handler != null) handler(this, EventArgs.Empty);
+        }
+
+        private void RaiseEditCancelled()
+        {
+            var handler = EditCancelled;
+            if (handler != null) handler(this, EventArgs.Empty);
+        }
+
+        /// <summary>Bestätigen bei Fokusverlust (Befund F1) — CheckEdit hat kein
+        /// natives Textkern-LostFocus wie ButtonEditBase._inner; das eigene
+        /// OnLostFocus ist hier der einzige Anknüpfungspunkt.</summary>
+        protected override void OnLostFocus(EventArgs e)
+        {
+            RaiseEditConfirmed();
+            base.OnLostFocus(e);
+        }
+
+        // ---- Nur für Tests --------------------------------------------------
+
+        /// <summary>Simuliert Fokusverlust — Fokus selbst ist kopflos nicht
+        /// auslösbar (Muster: ButtonEditBase.RaiseLostFocusForTests).</summary>
+        internal void RaiseLostFocusForTests()
+        {
+            OnLostFocus(EventArgs.Empty);
         }
 
         public override Size GetPreferredSize(Size proposedSize)

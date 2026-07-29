@@ -673,6 +673,13 @@ namespace UIFramework.Grid
             CommitAndEditNext();
         }
 
+        /// <summary>Simuliert einen DPI-Wechsel (Monitorwechsel) — im Kopflos-Test
+        /// sonst nicht auslösbar.</summary>
+        internal void RaiseDpiChangedForTests()
+        {
+            OnDpiChangedAfterParent(EventArgs.Empty);
+        }
+
         // ---- Nur für Tests --------------------------------------------------
 
         internal IGridCellEditor CurrentEditorForTests
@@ -761,6 +768,12 @@ namespace UIFramework.Grid
                     // kennt kein Sortieren, meldet nur, dass hier geklickt
                     // wurde. PerformClick erreicht GridRegion.Header nie, weil
                     // BeginReorder jedem Kopf-Klick zuvorkommt (siehe dort).
+                    //
+                    // Zwangs-Commit HIER statt im virtuellen OnHeaderClick (Befund
+                    // F5): Eine Ableitung, die OnHeaderClick ohne base-Aufruf
+                    // überschreibt, verlöre sonst den Commit — hier am Aufrufer
+                    // steht er unumgehbar VOR dem Handler.
+                    CommitEdit();
                     OnHeaderClick(_reorderingColumn);
                 }
             }
@@ -779,8 +792,6 @@ namespace UIFramework.Grid
 
         protected virtual void OnHeaderClick(int columnIndex)
         {
-            CommitEdit();
-
             var handler = HeaderClick;
             if (handler != null) handler(this, columnIndex);
         }
@@ -1108,12 +1119,21 @@ namespace UIFramework.Grid
 
         protected override void OnSizeChanged(EventArgs e)
         {
+            // Zwangs-Commit (Spec 3b, Befund F2): ClampOffsets schreibt den Versatz
+            // DIREKT, an den Settern (und damit am Commit-Hook aus Task 6) vorbei —
+            // ohne diesen Aufruf hier schwebte ein offener Editor nach dem Klemmen
+            // über der falschen Zeile.
+            CommitEdit();
             ClampOffsets();
             base.OnSizeChanged(e);
         }
 
         protected override void OnDpiChangedAfterParent(EventArgs e)
         {
+            // Zwangs-Commit aus demselben Grund wie in OnSizeChanged (Befund F2):
+            // Auch der DPI-Wechsel klemmt über ClampOffsets an den Settern vorbei.
+            CommitEdit();
+
             // Zeilenhöhe und Spaltenbreiten sind logisch formuliert und wachsen
             // von selbst mit — aber der Versatz ist physisch und muss neu geklemmt
             // werden, sonst zeigt das Grid nach dem Monitorwechsel ins Leere.

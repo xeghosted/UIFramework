@@ -55,6 +55,43 @@ namespace UIFramework.Tests.Controls
         }
 
         [Fact]
+        public void Losing_focus_confirms_exactly_once()
+        {
+            // Befund F1: CheckEdit hat keine LostFocus-Verdrahtung wie
+            // ButtonEditBase._inner — das eigene OnLostFocus muss bestätigen.
+            using (var check = new CheckEdit())
+            {
+                int confirmed = 0;
+                check.EditConfirmed += (s, e) => confirmed++;
+
+                check.RaiseLostFocusForTests();
+
+                Assert.Equal(1, confirmed);
+            }
+        }
+
+        [Fact]
+        public void A_disabled_check_edit_ignores_space_enter_and_escape_alike()
+        {
+            // Befund F4: vorher prüfte nur Space auf Enabled, Enter/Escape
+            // feuerten auch an einem deaktivierten Editor.
+            using (var check = new CheckEdit { Enabled = false })
+            {
+                int confirmed = 0, cancelled = 0;
+                check.EditConfirmed += (s, e) => confirmed++;
+                check.EditCancelled += (s, e) => cancelled++;
+
+                check.PerformKey(Keys.Space);
+                check.PerformKey(Keys.Enter);
+                check.PerformKey(Keys.Escape);
+
+                Assert.False(check.Checked);
+                Assert.Equal(0, confirmed);
+                Assert.Equal(0, cancelled);
+            }
+        }
+
+        [Fact]
         public void The_preferred_size_grows_with_the_text()
         {
             using (var shortOne = new CheckEdit { Text = "Ja" })

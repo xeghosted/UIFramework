@@ -178,6 +178,46 @@ namespace UIFramework.Tests.Controls
             }
         }
 
+        [Fact]
+        public void Losing_focus_without_a_core_confirms_exactly_once()
+        {
+            // Befund F1: SkinComboBox hat keinen nativen Textkern (_inner) und
+            // damit keine _inner.LostFocus-Verdrahtung wie ButtonEditBase mit Kern
+            // — das eigene OnLostFocus muss hier bestätigen.
+            using (var combo = new SkinComboBox())
+            {
+                int confirmed = 0;
+                combo.EditConfirmed += (s, e) => confirmed++;
+
+                combo.RaiseLostFocusForTests();
+
+                Assert.Equal(1, confirmed);
+            }
+        }
+
+        [Fact]
+        public void Losing_focus_while_the_own_popup_is_open_does_not_confirm()
+        {
+            // Derselbe !IsPopupOpen-Guard wie am Kern: Sonst risse das Öffnen der
+            // eigenen Liste den Editor unter dem Popup weg (Befund G1s Nachbar).
+            using (var combo = new SkinComboBox())
+            {
+                combo.Items.Add("alpha");
+                combo.Size = new Size(120, 24);
+                combo.CreateControl();
+
+                combo.ClickButtonForTests(0);
+                Assert.True(combo.IsPopupOpenForTests);
+
+                int confirmed = 0;
+                combo.EditConfirmed += (s, e) => confirmed++;
+
+                combo.RaiseLostFocusForTests();
+
+                Assert.Equal(0, confirmed);
+            }
+        }
+
         private sealed class StubSkinWithComboBox : SkinBase
         {
             private readonly Color _background;
