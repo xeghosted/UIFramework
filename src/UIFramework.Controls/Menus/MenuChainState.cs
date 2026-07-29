@@ -62,6 +62,9 @@ namespace UIFramework.Controls
 
         public void TruncateTo(int depth)
         {
+            // Clamp: bei negativem depth wäre die Schleife sonst endlos, weil
+            // PopLevel() bei leerer Liste ein No-op ist (Count sinkt nie unter 0).
+            if (depth < 0) depth = 0;
             while (_levels.Count > depth) PopLevel();
         }
 

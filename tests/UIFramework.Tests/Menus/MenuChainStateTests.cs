@@ -197,5 +197,17 @@ namespace UIFramework.Tests.Menus
 
             Assert.Equal(1, state.Depth);
         }
+
+        [Fact]
+        public void TruncateTo_clamps_a_negative_depth_to_zero()
+        {
+            var state = OpenedFileMenu();
+            state.SetSelection(0, 2);
+            state.PushLevel(state.EntriesAt(0)[2].Items);
+
+            state.TruncateTo(-1);
+
+            Assert.Equal(0, state.Depth);
+        }
     }
 }
