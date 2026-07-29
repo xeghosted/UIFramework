@@ -68,6 +68,32 @@ namespace UIFramework.Tests.Menus
         }
 
         [Fact]
+        public void The_submenu_arrow_stays_sequential_after_the_shortcut_column_when_anchorWidth_widens_the_popup()
+        {
+            // Fix-Runde 1 (Task-Review, Important-Fund): Der Plan-Wortlaut gilt —
+            // die Pfeilzone folgt strikt sequenziell auf Gutter/Text/Lücke/
+            // Shortcut-Spalte, statt an den rechten Zeilenrand gepinnt zu sein.
+            // Bei einem anchorWidth, das größer als die Eigenbreite ist, muss die
+            // Pfeilzone darum an DERSELBEN Stelle bleiben wie ohne Verbreiterung —
+            // eine an den rechten Rand gepinnte Zone würde stattdessen mitwandern
+            // und eine Lücke vor sich (statt nach der Shortcut-Spalte) aufreißen.
+            Size narrowSize;
+            var narrow = Measured(Entries(), out narrowSize);
+            var arrowNarrow = narrow.SubmenuArrowBoundsForTests(0);
+
+            var wide = new MenuContent(Entries());
+            Size wideSize;
+            using (var bmp = new Bitmap(8, 8))
+            using (var g = Graphics.FromImage(bmp))
+                wideSize = wide.Measure(g, 96, narrowSize.Width + 200);
+            var arrowWide = wide.SubmenuArrowBoundsForTests(0);
+
+            Assert.True(wideSize.Width > narrowSize.Width);          // anchorWidth hat tatsächlich verbreitert
+            Assert.Equal(arrowNarrow.Left, arrowWide.Left);          // Pfeilzone bleibt sequenziell verankert
+            Assert.True(arrowWide.Right < wide.RowBounds(0).Right);  // ... und wandert NICHT an den neuen Rand
+        }
+
+        [Fact]
         public void Hovering_a_selectable_row_reports_its_index_a_separator_reports_none()
         {
             List<MenuEntry> entries = Entries();

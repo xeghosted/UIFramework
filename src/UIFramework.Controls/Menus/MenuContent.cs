@@ -160,15 +160,10 @@ namespace UIFramework.Controls
                 var rowAppearance = SkinManager.Current.GetAppearance(ElementKeys.MenuItem, state);
                 SkinPainter.DrawBackground(g, row, rowAppearance, dpi);
 
-                // Spalten von links: Gutter (Haken), Text, Lücke, Shortcut —
-                // die Pfeilzone ist an den rechten Rand gepinnt (wie die
-                // Knopfzonen in ButtonEditBase), damit sie auch dann am Rand
-                // bleibt, wenn anchorWidth das Popup breiter zieht als der
-                // Inhalt braucht.
-                var gutter = new Rectangle(row.Left, row.Top, _rowHeight, row.Height);
-                var arrow = new Rectangle(row.Right - _rowHeight, row.Top, _rowHeight, row.Height);
-                var text = new Rectangle(gutter.Right, row.Top, _textWidth, row.Height);
-                var shortcut = new Rectangle(text.Right + _gap, row.Top, _shortcutWidth, row.Height);
+                var gutter = GutterZone(row);
+                var text = TextZone(row);
+                var shortcut = ShortcutZone(row);
+                var arrow = ArrowZone(row);
 
                 if (entry.Checked) DrawCheck(g, gutter, rowAppearance);
 
@@ -182,6 +177,37 @@ namespace UIFramework.Controls
 
                 if (entry.HasChildren) DrawSubmenuArrow(g, arrow, rowAppearance);
             }
+        }
+
+        // ---- Spaltengeometrie einer Zeile (eine Quelle für Paint UND Tests) --
+        //
+        // Strikt sequenziell von links, wie im Plan festgelegt: Gutter, Text,
+        // Lücke, Shortcut-Spalte, Pfeilzone — jede Spalte beginnt exakt dort,
+        // wo die vorige endet. Bewusst NICHT an den rechten Zeilenrand
+        // gepinnt: Bei anchorWidth > Eigenbreite (Popup breiter als der
+        // Inhalt braucht) bleibt die Lücke dadurch dort, wo die sequenzielle
+        // Formel sie vorsieht (vor der Pfeilzone), statt vor den an den Rand
+        // gepinnten Pfeil zu wandern. Divergenz-Test:
+        // The_submenu_arrow_stays_sequential_after_the_shortcut_column_when_anchorWidth_widens_the_popup.
+
+        private Rectangle GutterZone(Rectangle row)
+        {
+            return new Rectangle(row.Left, row.Top, _rowHeight, row.Height);
+        }
+
+        private Rectangle TextZone(Rectangle row)
+        {
+            return new Rectangle(GutterZone(row).Right, row.Top, _textWidth, row.Height);
+        }
+
+        private Rectangle ShortcutZone(Rectangle row)
+        {
+            return new Rectangle(TextZone(row).Right + _gap, row.Top, _shortcutWidth, row.Height);
+        }
+
+        private Rectangle ArrowZone(Rectangle row)
+        {
+            return new Rectangle(ShortcutZone(row).Right, row.Top, _rowHeight, row.Height);
         }
 
         /// <summary>Haken als Polylinie im inneren Drittel der (quadratischen)
@@ -267,6 +293,15 @@ namespace UIFramework.Controls
         {
             var handler = HoveredIndexChanged;
             if (handler != null) handler(index);
+        }
+
+        // ---- Nur für Tests --------------------------------------------------
+
+        /// <summary>Pfeilzonen-Geometrie einer Zeile — die Spaltenrechtecke selbst
+        /// sind sonst nicht öffentlich beobachtbar. Muster: CalendarContent.NextArrowForTests.</summary>
+        internal Rectangle SubmenuArrowBoundsForTests(int index)
+        {
+            return ArrowZone(RowBounds(index));
         }
     }
 }
