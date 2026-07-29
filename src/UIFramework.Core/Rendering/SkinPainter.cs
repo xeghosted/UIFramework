@@ -215,6 +215,69 @@ namespace UIFramework.Core.Rendering
             DrawBorder(g, rect, appearance, dpi);
         }
 
+        /// <summary>
+        /// Wie <see cref="DrawText"/>, aber MIT Mnemonic-Verarbeitung: "&amp;D"
+        /// unterstreicht das D, "&amp;&amp;" zeichnet ein echtes &amp;. Eigene Methode
+        /// statt eines Flags an DrawText, damit der NoPrefix-Schutz dort (Reitertitel
+        /// "Module &amp; Maps") unangetastet bleibt. Bewusst ohne EndEllipsis: Menüs
+        /// messen sich passend, nichts wird abgeschnitten.
+        /// </summary>
+        public static void DrawMnemonicText(Graphics g, string text, Rectangle bounds, ElementAppearance appearance,
+            int dpi, ContentAlignment alignment)
+        {
+            if (g == null) throw new ArgumentNullException(nameof(g));
+            if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+            if (string.IsNullOrEmpty(text)) return;
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+
+            var font = ResourceCache.Shared.GetFont(appearance.Font, dpi);
+            TextRenderer.DrawText(g, text, font, bounds, appearance.ForeColor,
+                MnemonicFlags | AlignmentFlags(alignment));
+        }
+
+        /// <summary>Gegenstück zu <see cref="DrawMnemonicText"/>: misst mit
+        /// Prefix-Verarbeitung, "&amp;Datei" ist also so breit wie "Datei".</summary>
+        public static Size MeasureMnemonicText(Graphics g, string text, ElementAppearance appearance, int dpi)
+        {
+            if (g == null) throw new ArgumentNullException(nameof(g));
+            if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+            if (string.IsNullOrEmpty(text)) return Size.Empty;
+
+            var font = ResourceCache.Shared.GetFont(appearance.Font, dpi);
+            return TextRenderer.MeasureText(g, text, font, new Size(int.MaxValue, int.MaxValue), MnemonicFlags);
+        }
+
+        /// <summary>
+        /// Eine horizontale Trennlinie, vertikal mittig in bounds, horizontal um das
+        /// skalierte Padding eingezogen — BorderColor und DPI-skalierte BorderWidth
+        /// der Erscheinung. Für Menü-Separatoren: Die Linie ist dort kein Rahmen um
+        /// etwas, sondern eigenständiger Inhalt; ein Control darf die Dicke nicht
+        /// selbst skalieren (keine DPI-Arithmetik in der Controls-Assembly).
+        /// </summary>
+        public static void DrawSeparatorLine(Graphics g, Rectangle bounds, ElementAppearance appearance, int dpi)
+        {
+            if (g == null) throw new ArgumentNullException(nameof(g));
+            if (appearance == null) throw new ArgumentNullException(nameof(appearance));
+            if (bounds.Width <= 0 || bounds.Height <= 0) return;
+            if (appearance.BorderWidth <= 0 || appearance.BorderColor.A == 0) return;
+
+            int width = DpiScale.Scale(appearance.BorderWidth, dpi);
+            if (width <= 0) return;
+
+            var padding = DpiScale.Scale(appearance.Padding, dpi);
+            int y = bounds.Top + bounds.Height / 2;
+            int left = bounds.Left + padding.Left;
+            int right = bounds.Right - padding.Right;
+            if (right <= left) return;
+
+            var pen = ResourceCache.Shared.GetPen(appearance.BorderColor, width);
+            g.DrawLine(pen, left, y, right, y);
+        }
+
+        // NoPadding|SingleLine OHNE NoPrefix (Mnemonic-Verarbeitung an) und OHNE
+        // EndEllipsis (Menüs messen sich passend).
+        private const TextFormatFlags MnemonicFlags = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine;
+
         private static TextFormatFlags ToTextFormatFlags(ContentAlignment alignment)
         {
             // NoPrefix: ohne dieses Flag behandelt TextRenderer ein einzelnes
@@ -224,29 +287,35 @@ namespace UIFramework.Core.Rendering
             // (z. B. ein Reitertitel "Module & Maps") würde sonst falsch
             // gezeichnet. Live an einem Verwender-Fenster gefunden: der
             // Reiter zeigte "Module _Maps" statt "Module & Maps".
+            // Menü-Texte sind die Ausnahme und laufen über DrawMnemonicText.
             var flags = TextFormatFlags.NoPadding | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis
                 | TextFormatFlags.NoPrefix;
 
+            return flags | AlignmentFlags(alignment);
+        }
+
+        private static TextFormatFlags AlignmentFlags(ContentAlignment alignment)
+        {
             switch (alignment)
             {
                 case ContentAlignment.TopLeft:
-                    return flags | TextFormatFlags.Top | TextFormatFlags.Left;
+                    return TextFormatFlags.Top | TextFormatFlags.Left;
                 case ContentAlignment.TopCenter:
-                    return flags | TextFormatFlags.Top | TextFormatFlags.HorizontalCenter;
+                    return TextFormatFlags.Top | TextFormatFlags.HorizontalCenter;
                 case ContentAlignment.TopRight:
-                    return flags | TextFormatFlags.Top | TextFormatFlags.Right;
+                    return TextFormatFlags.Top | TextFormatFlags.Right;
                 case ContentAlignment.MiddleLeft:
-                    return flags | TextFormatFlags.VerticalCenter | TextFormatFlags.Left;
+                    return TextFormatFlags.VerticalCenter | TextFormatFlags.Left;
                 case ContentAlignment.MiddleRight:
-                    return flags | TextFormatFlags.VerticalCenter | TextFormatFlags.Right;
+                    return TextFormatFlags.VerticalCenter | TextFormatFlags.Right;
                 case ContentAlignment.BottomLeft:
-                    return flags | TextFormatFlags.Bottom | TextFormatFlags.Left;
+                    return TextFormatFlags.Bottom | TextFormatFlags.Left;
                 case ContentAlignment.BottomCenter:
-                    return flags | TextFormatFlags.Bottom | TextFormatFlags.HorizontalCenter;
+                    return TextFormatFlags.Bottom | TextFormatFlags.HorizontalCenter;
                 case ContentAlignment.BottomRight:
-                    return flags | TextFormatFlags.Bottom | TextFormatFlags.Right;
+                    return TextFormatFlags.Bottom | TextFormatFlags.Right;
                 default:
-                    return flags | TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter;
+                    return TextFormatFlags.VerticalCenter | TextFormatFlags.HorizontalCenter;
             }
         }
     }
