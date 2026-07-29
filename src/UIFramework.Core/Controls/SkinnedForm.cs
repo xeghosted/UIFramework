@@ -84,6 +84,39 @@ namespace UIFramework.Core.Controls
             base.Dispose(disposing);
         }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // Die Form kennt die Menüklassen der Controls-Assembly nicht (Referenz-
+            // richtung Core <- Controls) — sie fragt alle IShortcutHandler in ihrer
+            // Hierarchie. So bekommen SkinnedForm-Konsumenten Menü-Shortcuts
+            // geschenkt; auf einer fremden Form ruft man MenuBar.ProcessShortcut
+            // selbst (eine dokumentierte Zeile).
+            if (DispatchShortcut(Controls, keyData)) return true;
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        // Voll qualifiziert: Form deklariert selbst ein verschachteltes
+        // ControlCollection (das MDI-Sonderfälle behandelt), das den
+        // unqualifizierten Namen hier verdeckt. Controls liefert aber
+        // weiterhin den Basistyp Control.ControlCollection — ohne die
+        // Qualifikation lehnt der Compiler die Zuweisung ab (CS1503).
+        private static bool DispatchShortcut(Control.ControlCollection controls, Keys keyData)
+        {
+            foreach (Control child in controls)
+            {
+                var handler = child as IShortcutHandler;
+                if (handler != null && handler.ProcessShortcut(keyData)) return true;
+                if (child.HasChildren && DispatchShortcut(child.Controls, keyData)) return true;
+            }
+            return false;
+        }
+
+        internal bool PerformShortcutForTests(Keys keyData)
+        {
+            var message = new Message();
+            return ProcessCmdKey(ref message, keyData);
+        }
+
         private void ApplyCaptionIfChanged()
         {
             // Ohne Fenster gibt es nichts einzufärben.

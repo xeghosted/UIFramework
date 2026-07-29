@@ -220,5 +220,44 @@ namespace UIFramework.Tests.Controls
             Assert.False(SkinnedForm.IsDarkCaption(light));
             Assert.True(SkinnedForm.IsDarkCaption(dark));
         }
+
+        /// <summary>Testklasse: ein Control, das IShortcutHandler implementiert und
+        /// die zuletzt gefragte Tastenkombination merkt — steht für eine MenuBar
+        /// oder einen anderen künftigen Shortcut-Handler, ohne dass dieses Projekt
+        /// (Core) die Controls-Assembly kennen muss.</summary>
+        private sealed class RecordingShortcutHandler : Control, IShortcutHandler
+        {
+            public Keys LastKeyData { get; private set; }
+
+            public bool ProcessShortcut(Keys keyData)
+            {
+                LastKeyData = keyData;
+                return true;
+            }
+        }
+
+        [Fact]
+        public void ProcessCmdKey_reaches_a_shortcut_handler_anywhere_in_the_tree()
+        {
+            using (var form = new SkinnedForm())
+            {
+                var panel = new Panel();
+                var handler = new RecordingShortcutHandler();        // private Testklasse: Control + IShortcutHandler
+                panel.Controls.Add(handler);
+                form.Controls.Add(panel);
+
+                Assert.True(form.PerformShortcutForTests(Keys.Control | Keys.Q));
+                Assert.Equal(Keys.Control | Keys.Q, handler.LastKeyData);
+            }
+        }
+
+        [Fact]
+        public void ProcessCmdKey_without_a_handler_declines()
+        {
+            using (var form = new SkinnedForm())
+            {
+                Assert.False(form.PerformShortcutForTests(Keys.Control | Keys.Q));
+            }
+        }
     }
 }
